@@ -1,0 +1,125 @@
+﻿@model ITHelpDesk.Models.Ticket
+
+@{
+    ViewData["Title"] = "Create";
+}
+
+<h1>Create</h1>
+<h4>Ticket</h4>
+<hr />
+
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Create" method="post" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            @* Optional: show individual errors clearly *@
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger">
+                    @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                    {
+                        <p>@error.ErrorMessage</p>
+                    }
+                </div>
+            }
+
+            <div class="form-group">
+                <label asp-for="RequesterName" class="control-label"></label>
+                <input asp-for="RequesterName" class="form-control" />
+                <span asp-validation-for="RequesterName" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Email" class="control-label"></label>
+                <input asp-for="Email" class="form-control" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="PortId" class="control-label"></label>
+                <select asp-for="PortId" class="form-control" asp-items="ViewBag.PortId">
+                    <option value="">Select Port</option>
+                </select>
+                <span asp-validation-for="PortId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="DepartmentId" class="control-label"></label>
+                <select asp-for="DepartmentId" class="form-control" asp-items="ViewBag.DepartmentId">
+                    <option value="">Select Department</option>
+                </select>
+                <span asp-validation-for="DepartmentId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="CategoryId" class="control-label">Category</label>
+                <select asp-for="CategoryId" class="form-control" asp-items="ViewBag.CategoryId" id="CategoryDropdown">
+                    <option value="">-- Select Category --</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="SubcategoryId" class="control-label">Subcategory</label>
+                <select asp-for="SubcategoryId" class="form-control" id="SubcategoryDropdown">
+                    <option value="">-- Select Subcategory --</option>
+                </select>
+            </div>
+
+
+            <div class="form-group">
+                <label asp-for="PriorityId" class="control-label"></label>
+                <select asp-for="PriorityId" class="form-control" asp-items="ViewBag.PriorityId">
+                    <option value="">Select Priority</option>
+                </select>
+                <span asp-validation-for="PriorityId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Description" class="control-label"></label>
+                <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="UploadedFile" class="control-label">Upload File</label>
+                <input type="file" name="UploadedFile" class="form-control" />
+
+            </div>
+
+ 
+            <div class="form-group mt-3">
+                <input type="submit" value="Create" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary ml-2">Back to List</a> 
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('#CategoryDropdown').change(function () {
+                var categoryId = $(this).val();
+                $('#SubcategoryDropdown').empty().append('<option value="">Loading...</option>');
+
+                if (categoryId) {
+                    $.getJSON('/Tickets/GetSubcategoriesByCategory?categoryId=' + categoryId, function (data) {
+                        $('#SubcategoryDropdown').empty().append('<option value="">-- Select Subcategory --</option>');
+                        $.each(data, function (i, subcat) {
+                            $('#SubcategoryDropdown').append('<option value="' + subcat.id + '">' + subcat.subcategoryName + '</option>');
+                        });
+                    });
+                } else {
+                    $('#SubcategoryDropdown').empty().append('<option value="">-- Select Subcategory --</option>');
+                }
+            });
+        });
+    </script>
+}
+
+

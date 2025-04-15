@@ -1,0 +1,54 @@
+﻿@model IEnumerable<Ticket>
+
+@{
+    ViewData["Title"] = "Unassigned Tickets";
+}
+
+<h2>Unassigned Tickets</h2>
+
+@if (!Model.Any())
+{
+    <p>No unassigned tickets found for your category group.</p>
+}
+else
+{
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>Requester</th>
+                <th>Email</th>
+                <th>Department</th>
+                <th>Subcategory</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Port</th>
+                <th>Description</th>
+                <th>Created At</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var ticket in Model)
+            {
+                <tr>
+                    <td>@ticket.RequesterName</td>
+                    <td>@ticket.Email</td>
+                    <td>@ticket.Department?.DepartmentName</td>
+                    <td>@ticket.Subcategory?.SubcategoryName</td>
+                    <td>@ticket.Priority?.PriorityName</td>
+                    <td>@ticket.Status?.StatusName</td>
+                    <td>@ticket.Port?.PortName</td>
+                    <td>@ticket.Description</td>
+                    <td>@ticket.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>
+                        <form asp-action="AssignToMe" asp-controller="Tickets" method="post">
+                            <input type="hidden" name="id" value="@ticket.Id" />
+                            <button type="submit" class="btn btn-sm btn-success">Assign to Me</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+

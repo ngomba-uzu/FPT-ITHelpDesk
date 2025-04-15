@@ -1,0 +1,56 @@
+﻿@model IEnumerable<ITHelpDesk.Models.Ticket>
+
+<h1>Tickets</h1>
+
+<p>
+    <a asp-action="Create" class="btn btn-primary">Create New Ticket</a>
+</p>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>@Html.DisplayNameFor(model => model.First().RequesterName)</th>
+            <th>@Html.DisplayNameFor(model => model.First().Email)</th>
+            <th>@Html.DisplayNameFor(model => model.First().Description)</th>
+            <th>Document</th>
+            <th>@Html.DisplayNameFor(model => model.First().CreatedAt)</th>
+            <th>@Html.DisplayNameFor(model => model.First().Port)</th>
+            <th>@Html.DisplayNameFor(model => model.First().Department)</th>
+            <th>@Html.DisplayNameFor(model => model.First().Category)</th>
+            <th>@Html.DisplayNameFor(model => model.First().Subcategory)</th>
+            <th>@Html.DisplayNameFor(model => model.First().Priority)</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.RequesterName</td>
+                <td>@item.Email</td>
+                <td>@item.Description</td>
+                <td>
+                    @if (!string.IsNullOrEmpty(item.FileName))
+                    {
+                        var fileName = System.IO.Path.GetFileName(item.FileName);
+                        <a href="~/uploads/@fileName" target="_blank">@fileName</a>
+                    }
+                    else
+                    {
+                        <span>No document</span>
+                    }
+                </td>
+                <td>@item.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                <td>@item.Port?.PortName</td>
+                <td>@item.Department?.DepartmentName</td>
+                <td>@item.Category?.CategoryName</td>
+                <td>@item.Subcategory?.SubcategoryName</td>
+                <td>@item.Priority?.PriorityName</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
+                    <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
+                    <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

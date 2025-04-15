@@ -1,0 +1,42 @@
+﻿@{
+    ViewData["Title"] = "Dashboard";
+    string role = ViewBag.Role as string;
+}
+
+<div class="container mt-5">
+    <h1 class="mb-4">Welcome to the Dashboard</h1>
+
+    @if (role == "User")
+    {
+        <div class="alert alert-primary">User Dashboard</div>
+        <ul>
+            <li>Total Tickets: (Coming soon)</li>
+            <li>Pending Tickets: (Coming soon)</li>
+            <li>Resolved Tickets: (Coming soon)</li>
+            <li><strong>Recently Created Tickets</strong>: (Coming soon)</li>
+        </ul>
+        <a class="btn btn-success" href="#">Create Ticket</a>
+    }
+    else if (role == "Technician")
+    {
+        <div class="alert alert-warning">Technician Dashboard</div>
+        <ul>
+            <li>Tickets for Your Port: (Coming soon)</li>
+            <li>Unassigned Tickets to Take: (Coming soon)</li>
+        </ul>
+    }
+    else if (role == "Technical Support")
+    {
+        <div class="alert alert-info">Technical Support Dashboard</div>
+        <p>You can manage all ports and dropdown tables here. Features like:</p>
+        <ul>
+            <li>Create Ports</li>
+            <li>Manage Categories</li>
+            <li>Assign Technicians</li>
+        </ul>
+    }
+    else
+    {
+        <div class="alert alert-danger">No role assigned. Please contact the administrator.</div>
+    }
+</div>

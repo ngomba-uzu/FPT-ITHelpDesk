@@ -1,0 +1,161 @@
+﻿@page
+@model ConfirmEmailModel
+@{
+    ViewData["Title"] = "Confirm email";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - FPT IT HelpDesk</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+            body::before {
+                content: "";
+                position: absolute;
+                width: 300px;
+                height: 300px;
+                background: rgba(0, 123, 255, 0.1);
+                border-radius: 50%;
+                top: -100px;
+                left: -100px;
+                z-index: -1;
+                filter: blur(60px);
+            }
+
+            body::after {
+                content: "";
+                position: absolute;
+                width: 400px;
+                height: 400px;
+                background: rgba(40, 167, 69, 0.1);
+                border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+                bottom: -150px;
+                right: -100px;
+                z-index: -1;
+                filter: blur(60px);
+            }
+
+        .confirmation-container {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .confirmation-header {
+            margin-bottom: 30px;
+        }
+
+            .confirmation-header h1 {
+                color: #333;
+                font-size: 24px;
+                margin-bottom: 15px;
+                font-weight: 600;
+            }
+
+            .confirmation-header i {
+                color: #28a745;
+                font-size: 48px;
+                margin-bottom: 20px;
+            }
+
+        .confirmation-message {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 25px;
+        }
+
+        .btn-login {
+            background-color: #007bff;
+            color: white;
+            height: 45px;
+            border-radius: 6px;
+            font-weight: 500;
+            width: 100%;
+            max-width: 200px;
+            transition: all 0.3s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+            .btn-login:hover {
+                background-color: #0069d9;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
+            }
+
+            .btn-login i {
+                margin-right: 8px;
+            }
+
+        .brand-logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+            .brand-logo img {
+                height: 50px;
+            }
+
+        .status-message {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="confirmation-container">
+        <div class="brand-logo">
+            <img src="~/FPT-Icon.png" alt="FPT Logo">
+        </div>
+
+        <div class="confirmation-header">
+            <i class="fas fa-check-circle"></i>
+            <h1>Email Confirmation</h1>
+        </div>
+
+        <div class="status-message">
+            <partial name="_StatusMessage" model="Model.StatusMessage" />
+        </div>
+
+        <div class="confirmation-message">
+            <p>Your email address has been successfully verified.</p>
+            <p>You can now access all features of your account.</p>
+        </div>
+
+        <a asp-page="./Login" class="btn btn-login">
+            <i class="fas fa-sign-in-alt"></i> Continue to Login
+        </a>
+    </div>
+
+    @section Scripts {
+        <partial name="_ValidationScriptsPartial" />
+    }
+</body>
+</html>

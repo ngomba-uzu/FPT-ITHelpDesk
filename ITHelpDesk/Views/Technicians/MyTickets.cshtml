@@ -1,0 +1,12 @@
+﻿@model IEnumerable<ITHelpDesk.Models.Ticket> 
+@{
+    ViewData["Title"] = "My Tickets";
+}
+
+<h2>My Tickets</h2>
+
+<div class="btn-group" role="group">
+    <a asp-action="AssignedTickets" class="btn btn-primary">Assigned</a>
+    <a asp-action="UnassignedTickets" class="btn btn-warning">Unassigned</a>
+    <a asp-action="ClosedTickets" class="btn btn-success">Closed</a>
+</div>

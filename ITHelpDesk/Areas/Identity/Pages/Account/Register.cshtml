@@ -1,0 +1,263 @@
+﻿@page
+@model RegisterModel
+@{
+    ViewData["Title"] = "Register";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - FPT IT HelpDesk</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+            body::before {
+                content: "";
+                position: absolute;
+                width: 300px;
+                height: 300px;
+                background: rgba(0, 123, 255, 0.1);
+                border-radius: 50%;
+                top: -100px;
+                left: -100px;
+                z-index: -1;
+                filter: blur(60px);
+            }
+
+            body::after {
+                content: "";
+                position: absolute;
+                width: 400px;
+                height: 400px;
+                background: rgba(40, 167, 69, 0.1);
+                border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+                bottom: -150px;
+                right: -100px;
+                z-index: -1;
+                filter: blur(60px);
+            }
+
+        .register-container {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 700px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .register-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+            .register-header h1 {
+                color: #333;
+                font-size: 24px;
+                margin-bottom: 5px;
+                font-weight: 600;
+            }
+
+            .register-header p {
+                color: #666;
+                font-size: 14px;
+                margin-bottom: 0;
+            }
+
+        .form-control {
+            height: 45px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+        }
+
+            .form-control:focus {
+                border-color: #007bff;
+                box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.1);
+            }
+
+        select.form-control {
+            padding: 10px 15px;
+        }
+
+        .btn-register {
+            background-color: #007bff;
+            color: white;
+            height: 45px;
+            border-radius: 6px;
+            font-weight: 500;
+            width: 100%;
+            margin-top: 20px;
+            transition: all 0.3s;
+            border: none;
+        }
+
+            .btn-register:hover {
+                background-color: #0069d9;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
+            }
+
+        .input-group-text {
+            cursor: pointer;
+            background-color: #f8f9fa;
+        }
+
+        .brand-logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+            .brand-logo img {
+                height: 50px;
+            }
+
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            margin-right: -5px;
+            margin-left: -5px;
+        }
+
+        .form-col {
+            padding-right: 5px;
+            padding-left: 5px;
+            flex: 1 0 0%;
+        }
+
+        .login-prompt {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+
+            .login-prompt a {
+                color: #007bff;
+                text-decoration: none;
+                margin-left: 5px;
+                font-weight: 500;
+            }
+
+                .login-prompt a:hover {
+                    text-decoration: underline;
+                }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+         <div class="brand-logo">
+            <img src="~/FPT-Icon.png" alt="FPT Logo">
+        </div> 
+
+        <div class="register-header">
+            <h1>Register user account</h1>
+        </div>
+
+        <form id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-row">
+                <div class="form-col">
+                    <input asp-for="Input.FirstName" class="form-control" placeholder="First Name" />
+                    <span asp-validation-for="Input.FirstName" class="text-danger"></span>
+                </div>
+                <div class="form-col">
+                    <input asp-for="Input.LastName" class="form-control" placeholder="Last Name" />
+                    <span asp-validation-for="Input.LastName" class="text-danger"></span>
+                </div>
+            </div>
+
+            <input asp-for="Input.Email" class="form-control" placeholder="Email" />
+            <span asp-validation-for="Input.Email" class="text-danger"></span>
+
+            <div class="form-row">
+                <div class="form-col">
+                    <select asp-for="Input.DepartmentId" class="form-control" asp-items="Model.Departments">
+                        <option value="">-- Select Department --</option>
+                    </select>
+                    <span asp-validation-for="Input.DepartmentId" class="text-danger"></span>
+                </div>
+                <div class="form-col">
+                    <select asp-for="Input.PortId" class="form-control" asp-items="Model.Ports">
+                        <option value="">-- Select Port --</option>
+                    </select>
+                    <span asp-validation-for="Input.PortId" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-col">
+                    <div class="input-group">
+                        <input asp-for="Input.Password" id="password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="Password" />
+                        <button class="btn btn-outline-secondary" type="button" onclick="passwordVisible()">
+                            <i id="passwordToggle" class="fas fa-eye-slash"></i>
+                        </button>
+                    </div>
+                    <span asp-validation-for="Input.Password" class="text-danger"></span>
+                </div>
+                <div class="form-col">
+                    <div class="input-group">
+                        <input asp-for="Input.ConfirmPassword" id="confirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="Confirm Password" />
+                        <button class="btn btn-outline-secondary" type="button" onclick="confirmPasswordVisible()">
+                            <i id="confirmPasswordToggle" class="fas fa-eye-slash"></i>
+                        </button>
+                    </div>
+                    <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
+                </div>
+            </div>
+
+            <button id="registerSubmit" type="submit" class="btn btn-register">Register</button>
+            <br/>
+            <div class="login-prompt">
+                Already have an account? <a asp-page="./Login">Login</a>
+            </div>
+        </form>
+    </div>
+
+    @section Scripts {
+        <script>
+            function passwordVisible() {
+                var x = document.getElementById("password");
+                var passwordToggle = document.getElementById("passwordToggle");
+                if (x.type === "password") {
+                    x.type = "text";
+                    passwordToggle.className = "fas fa-eye";
+                } else {
+                    x.type = "password";
+                    passwordToggle.className = "fas fa-eye-slash";
+                }
+            }
+
+            function confirmPasswordVisible() {
+                var x = document.getElementById("confirmPassword");
+                var passwordToggle = document.getElementById("confirmPasswordToggle");
+                if (x.type === "password") {
+                    x.type = "text";
+                    passwordToggle.className = "fas fa-eye";
+                } else {
+                    x.type = "password";
+                    passwordToggle.className = "fas fa-eye-slash";
+                }
+            }
+        </script>
+        <partial name="_ValidationScriptsPartial" />
+    }
+</body>
+</html>

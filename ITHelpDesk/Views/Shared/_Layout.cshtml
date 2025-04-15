@@ -1,0 +1,89 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - ITHelpDesk</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/ITHelpDesk.styles.css" asp-append-version="true" />
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div class="container-fluid">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse"
+                aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Tickets" asp-action="Index">Create Ticket</a>
+                        </li>
+                        <!-- Check for Technical Support role -->
+                        @using Microsoft.AspNetCore.Identity
+                        @inject UserManager<IdentityUser> UserManager
+                        @inject SignInManager<IdentityUser> SignInManager
+
+                        @{
+                            var user = await UserManager.GetUserAsync(User);
+                            var roles = user != null ? await UserManager.GetRolesAsync(user) : new List<string>();
+                        }
+
+                        @if (roles.Contains("Technical Support"))
+                        {
+                            <!-- Manage System Data Dropdown for Technical Support -->
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-dark" href="#" id="manageSystemDataDropdown" role="button"
+                                data-bs-toggle="dropdown" aria-expanded="false">
+                                    Manage System Data
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="manageSystemDataDropdown">
+                                    <li><a class="dropdown-item" asp-area="" asp-controller="Ports" asp-action="Index">Ports</a></li>
+                                    <li><a class="dropdown-item" asp-area="" asp-controller="Departments" asp-action="Index">Departments</a></li>
+                                    <li><a class="dropdown-item" asp-area="" asp-controller="Categories" asp-action="Index">Categories</a></li>
+                                    <li><a class="dropdown-item" asp-area="" asp-controller="Subcategories" asp-action="Index">Subcategories</a></li>
+                                    <li><a class="dropdown-item" asp-area="" asp-controller="Priorities" asp-action="Index">Priorities</a></li>
+                                    <li><a class="dropdown-item" asp-area="" asp-controller="Technicians" asp-action="Index">Technicians</a></li>
+                                    <li><a class="dropdown-item" asp-area="" asp-controller="TechnicianGroups" asp-action="Index">Technician Group</a></li>
+                                    <li><a class="dropdown-item" asp-area="" asp-controller="Status" asp-action="Index">Status</a></li>
+
+                                </ul>
+                            </li>
+                        }
+
+                        @if (roles.Contains("Technician"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Technicians" asp-action="MyTickets">My Tickets</a>
+                            </li>
+                        }
+
+                    </ul>
+                    <partial name="_LoginPartial" />
+                </div>
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2025 - ITHelpDesk
+        </div>
+    </footer>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
+
