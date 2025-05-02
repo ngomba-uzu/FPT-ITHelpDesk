@@ -1,0 +1,65 @@
+﻿@model ITHelpDesk.Models.ViewModels.ResolutionViewModel
+
+@{
+    ViewData["Title"] = "Ticket Resolution";
+}
+
+<h2>Resolve Ticket</h2>
+
+<div>
+    <strong>Ticket Number:</strong>
+    <input type="text" class="form-control" value="@Model.TicketNumber" disabled /><br />
+
+    <strong>Description:</strong>
+    <textarea class="form-control" rows="4" disabled>@Model.Description</textarea>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.SeniorTechnicianResponse))
+{
+    <div class="form-group">
+        <label>Senior Technician Response</label>
+        <textarea class="form-control" disabled>@Model.SeniorTechnicianResponse</textarea>
+    </div>
+}
+
+
+<form asp-action="Resolution" method="post" enctype="multipart/form-data">
+    <input type="hidden" asp-for="TicketId" /> <!-- Hidden field to pass TicketId -->
+    <input type="hidden" asp-for="TicketNumber" />
+    <input type="hidden" asp-for="Description" />
+
+    <div class="form-group">
+        <label asp-for="Resolution">Resolution</label>
+        <textarea asp-for="Resolution" class="form-control" rows="4">@Model.Resolution</textarea>
+        <span asp-validation-for="Resolution" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Document">Upload Resolution Document (Optional)</label>
+        <input asp-for="Document" type="file" class="form-control" />
+        <span asp-validation-for="Document" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label for="Status">Change Status</label>
+        <select asp-for="StatusId" class="form-control" asp-items="@(new SelectList(Model.StatusList, "Id", "StatusName"))">
+            <option value="">Select Status</option>
+        </select>
+        <span asp-validation-for="StatusId" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Submit Resolution</button>
+</form>
+
+<!-- Error message display -->
+<div class="text-danger">
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <p>There are errors in the form. Please fix them and try again.</p>
+        @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+        {
+            <p>@error.ErrorMessage</p>
+        }
+    }
+</div>
+

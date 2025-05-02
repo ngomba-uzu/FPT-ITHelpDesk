@@ -1,78 +1,135 @@
 ﻿@model ITHelpDesk.Models.Ticket
-
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Ticket Details";
 }
 
-<h1>Details</h1>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet" />
 
-<div>
-    <h4>Ticket</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.RequesterName)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.RequesterName)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Email)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Email)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Description)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Description)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.FileName)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.FileName)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedAt)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Port)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Port.PortName)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Department)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Department.DepartmentName)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Category)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Category.CategoryName)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Subcategory)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Subcategory.SubcategoryName)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Priority)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Priority.PriorityName)
-        </dd>
-    </dl>
+<style>
+    .ticket-detail-label {
+        font-weight: 600;
+        min-width: 150px;
+        display: inline-block;
+        color: #343a40;
+    }
+
+    .rounded-box {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 12px;
+        border-radius: 20px;
+        background-color: #e9ecef;
+        margin-top: 5px;
+        font-weight: 500;
+    }
+
+        .rounded-box i {
+            margin-right: 8px;
+            color: #6c757d;
+        }
+
+    .btn-group-custom {
+        margin-top: 20px;
+    }
+
+    .card-custom {
+        border: 1px solid #dee2e6;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .card-header-custom {
+        background-color: #0d6efd;
+        color: white;
+        padding: 16px;
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+        display: flex;
+        align-items: center;
+    }
+
+        .card-header-custom i {
+            margin-right: 10px;
+            font-size: 1.3rem;
+        }
+
+    .btn-custom:hover {
+        opacity: 0.9;
+    }
+</style>
+
+<div class="card card-custom">
+    <div class="card-header-custom">
+        <i class="fas fa-ticket-alt"></i>
+        <h4 class="mb-0">Ticket Details</h4>
+    </div>
+
+    <div class="card-body p-4">
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <span class="ticket-detail-label">Ticket Number</span>: @Model.TicketNumber
+            </div>
+            <div class="col-md-6 mb-3">
+                <span class="ticket-detail-label">Requester</span>: @Model.RequesterName
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <span class="ticket-detail-label">Email</span>: @Model.Email
+            </div>
+            <div class="col-md-6 mb-3">
+                <span class="ticket-detail-label">Created At</span>: @Model.CreatedAt.ToString("MMM dd, yyyy hh:mm tt")
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <span class="ticket-detail-label">Port</span>: @Model.Port?.PortName
+            </div>
+            <div class="col-md-6 mb-3">
+                <span class="ticket-detail-label">Department</span>: @Model.Department?.DepartmentName
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <span class="ticket-detail-label">Category</span>: @Model.Category?.CategoryName
+            </div>
+            <div class="col-md-6 mb-3">
+                <span class="ticket-detail-label">Subcategory</span>: @Model.Subcategory?.SubcategoryName
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <span class="ticket-detail-label">Priority</span>: @Model.Priority?.PriorityName
+            </div>
+            <div class="col-md-6 mb-3">
+                <span class="ticket-detail-label">Attachment</span>:
+                @if (!string.IsNullOrEmpty(Model.FileName))
+                {
+                    <div class="rounded-box mt-1">
+                        <i class="fas fa-paperclip"></i> @Model.FileName
+                    </div>
+                }
+                else
+                {
+                    <span class="text-muted">No attachment</span>
+                }
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12 mb-3">
+                <span class="ticket-detail-label">Description</span>: @Model.Description
+            </div>
+        </div>
+
+        <div class="btn-group-custom">
+           @*  <a class="btn btn-primary btn-custom" asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> *@
+            <a class="btn btn-outline-secondary ms-2 btn-custom" asp-action="Index">Back to List</a>
+        </div>
+    </div>
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
-    <a asp-action="Index">Back to List</a>
-</div>
+

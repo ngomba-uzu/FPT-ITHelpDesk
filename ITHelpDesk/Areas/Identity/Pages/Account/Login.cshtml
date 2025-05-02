@@ -206,33 +206,32 @@
             </div>
         </form>
     </div>
+    <script>
+        function passwordVisible() {
+            var x = document.getElementById("password");
+            var passwordToggle = document.getElementById("passwordToggle");
+            if (x.type === "password") {
+                x.type = "text";
+                passwordToggle.className = "fas fa-eye";
+            } else {
+                x.type = "password";
+                passwordToggle.className = "fas fa-eye-slash";
+            }
+        }
+    </script>
+    @if (TempData["Message"] != null)
+    {
+        <script>
+            Swal.fire({
+                title: 'Account Created',
+                text: '@TempData["Message"]',
+                icon: 'success',
+                confirmButtonText: 'Okay'
+            });
+        </script>
+    }
 
     @section Scripts {
-        <script>
-            function passwordVisible() {
-                var x = document.getElementById("password");
-                var passwordToggle = document.getElementById("passwordToggle");
-                if (x.type === "password") {
-                    x.type = "text";
-                    passwordToggle.className = "fas fa-eye";
-                } else {
-                    x.type = "password";
-                    passwordToggle.className = "fas fa-eye-slash";
-                }
-            }
-        </script>
-
-        @if (TempData["Message"] != null)
-        {
-            <script>
-                Swal.fire({
-                    title: 'Account Created',
-                    text: '@TempData["Message"]',
-                    icon: 'success',
-                    confirmButtonText: 'Okay'
-                });
-            </script>
-        }
         <partial name="_ValidationScriptsPartial" />
     }
 </body>

@@ -26,7 +26,7 @@ namespace ITHelpDesk.Models
         [ValidateNever]
         public TechnicianGroup? TechnicianGroup { get; set; }
 
-  
+
     }
 
 }

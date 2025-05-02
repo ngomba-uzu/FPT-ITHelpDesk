@@ -4,6 +4,7 @@ using ITHelpDesk.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ITHelpDesk.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250423110011_ClosedDate")]
+    partial class ClosedDate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -92,27 +95,6 @@ namespace ITHelpDesk.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Priorities");
-                });
-
-            modelBuilder.Entity("ITHelpDesk.Models.SeniorTechnician", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("SeniorTechnicians");
                 });
 
             modelBuilder.Entity("ITHelpDesk.Models.Status", b =>
@@ -225,9 +207,6 @@ namespace ITHelpDesk.Data.Migrations
                     b.Property<int>("CategoryId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("ClosedByTechnicianId")
-                        .HasColumnType("int");
-
                     b.Property<DateTime?>("ClosedDate")
                         .HasColumnType("datetime2");
 
@@ -249,9 +228,6 @@ namespace ITHelpDesk.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("EscalateReason")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("FileName")
                         .HasColumnType("nvarchar(max)");
 
@@ -264,23 +240,8 @@ namespace ITHelpDesk.Data.Migrations
                     b.Property<int>("PriorityId")
                         .HasColumnType("int");
 
-                    b.Property<string>("ReassignReason")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ReopenReason")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("RequesterName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Resolution")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("SeniorTechnicianId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SeniorTechnicianResponse")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("StatusChangedAt")
@@ -305,15 +266,11 @@ namespace ITHelpDesk.Data.Migrations
 
                     b.HasIndex("CategoryId");
 
-                    b.HasIndex("ClosedByTechnicianId");
-
                     b.HasIndex("DepartmentId");
 
                     b.HasIndex("PortId");
 
                     b.HasIndex("PriorityId");
-
-                    b.HasIndex("SeniorTechnicianId");
 
                     b.HasIndex("StatusId");
 
@@ -650,10 +607,6 @@ namespace ITHelpDesk.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("ITHelpDesk.Models.Technician", "ClosedByTechnician")
-                        .WithMany()
-                        .HasForeignKey("ClosedByTechnicianId");
-
                     b.HasOne("ITHelpDesk.Models.Department", "Department")
                         .WithMany()
                         .HasForeignKey("DepartmentId")
@@ -671,10 +624,6 @@ namespace ITHelpDesk.Data.Migrations
                         .HasForeignKey("PriorityId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("ITHelpDesk.Models.SeniorTechnician", "SeniorTechnician")
-                        .WithMany()
-                        .HasForeignKey("SeniorTechnicianId");
 
                     b.HasOne("ITHelpDesk.Models.Status", "Status")
                         .WithMany()
@@ -698,15 +647,11 @@ namespace ITHelpDesk.Data.Migrations
 
                     b.Navigation("Category");
 
-                    b.Navigation("ClosedByTechnician");
-
                     b.Navigation("Department");
 
                     b.Navigation("Port");
 
                     b.Navigation("Priority");
-
-                    b.Navigation("SeniorTechnician");
 
                     b.Navigation("Status");
 

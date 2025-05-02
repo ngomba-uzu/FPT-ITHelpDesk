@@ -231,32 +231,33 @@
         </form>
     </div>
 
-    @section Scripts {
-        <script>
-            function passwordVisible() {
-                var x = document.getElementById("password");
-                var passwordToggle = document.getElementById("passwordToggle");
-                if (x.type === "password") {
-                    x.type = "text";
-                    passwordToggle.className = "fas fa-eye";
-                } else {
-                    x.type = "password";
-                    passwordToggle.className = "fas fa-eye-slash";
-                }
+    <script>
+        function passwordVisible() {
+            var x = document.getElementById("password");
+            var passwordToggle = document.getElementById("passwordToggle");
+            if (x.type === "password") {
+                x.type = "text";
+                passwordToggle.className = "fas fa-eye";
+            } else {
+                x.type = "password";
+                passwordToggle.className = "fas fa-eye-slash";
             }
+        }
 
-            function confirmPasswordVisible() {
-                var x = document.getElementById("confirmPassword");
-                var passwordToggle = document.getElementById("confirmPasswordToggle");
-                if (x.type === "password") {
-                    x.type = "text";
-                    passwordToggle.className = "fas fa-eye";
-                } else {
-                    x.type = "password";
-                    passwordToggle.className = "fas fa-eye-slash";
-                }
+        function confirmPasswordVisible() {
+            var x = document.getElementById("confirmPassword");
+            var passwordToggle = document.getElementById("confirmPasswordToggle");
+            if (x.type === "password") {
+                x.type = "text";
+                passwordToggle.className = "fas fa-eye";
+            } else {
+                x.type = "password";
+                passwordToggle.className = "fas fa-eye-slash";
             }
-        </script>
+        }
+    </script>
+
+    @section Scripts {
         <partial name="_ValidationScriptsPartial" />
     }
 </body>

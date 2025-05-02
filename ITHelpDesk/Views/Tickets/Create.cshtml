@@ -1,105 +1,163 @@
 ﻿@model ITHelpDesk.Models.Ticket
 
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Create Ticket";
 }
 
-<h1>Create</h1>
-<h4>Ticket</h4>
-<hr />
+    <div class="card">
+        <div class="card-header">
+            <h3 class="mt-2">Create Ticket</h3>
+        </div>
 
-<div class="row">
-    <div class="col-md-6">
-        <form asp-action="Create" method="post" enctype="multipart/form-data">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div class="card-body">
+            <form asp-action="Create" method="post" enctype="multipart/form-data">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
-            @* Optional: show individual errors clearly *@
-            @if (!ViewData.ModelState.IsValid)
-            {
-                <div class="alert alert-danger">
-                    @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
-                    {
-                        <p>@error.ErrorMessage</p>
-                    }
+                <!-- Row 1: Requester Info -->
+                <div class="row">
+                    <div class="col-md-4">
+                        <label>Requester</label>
+                    <input asp-for="RequesterName" class="form-control bg-light" class="form-control" />
+                        <span asp-validation-for="RequesterName"  class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label>Email Address</label>
+                    <input asp-for="Email" class="form-control bg-light" class="form-control" />
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label>Port/Site</label>
+                    <select asp-for="PortId" class="form-control bg-light" asp-items="ViewBag.PortId">
+                            <option value="">Select Port</option>
+                        </select>
+                        <span asp-validation-for="PortId" class="text-danger"></span>
+                    </div>
                 </div>
-            }
 
-            <div class="form-group">
-                <label asp-for="RequesterName" class="control-label"></label>
-                <input asp-for="RequesterName" class="form-control" />
-                <span asp-validation-for="RequesterName" class="text-danger"></span>
+                <!-- Row 2: Department, Category, Subcategory -->
+                <div class="row">
+                    <div class="col-md-4">
+                        <label>Department</label>
+                    <select asp-for="DepartmentId" class="form-control bg-light" asp-items="ViewBag.DepartmentId">
+                            <option value="">Select Department</option>
+                        </select>
+                        <span asp-validation-for="DepartmentId" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label>Category</label>
+                        <select asp-for="CategoryId" class="form-control" asp-items="ViewBag.CategoryId" id="CategoryDropdown">
+                            <option value="">-- Select Category --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label>Subcategory</label>
+                        <select asp-for="SubcategoryId" class="form-control" id="SubcategoryDropdown">
+                            <option value="">-- Select Subcategory --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Row 3: Priority -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <label>Priority</label>
+                        <select asp-for="PriorityId" class="form-control" asp-items="ViewBag.PriorityId">
+                            <option value="">Select Priority</option>
+                        </select>
+                        <span asp-validation-for="PriorityId" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <!-- Row 4: Description -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <label>Description</label>
+                        <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+                </div>
+
+            <!-- Row 5: Attachments -->
+            <div class="row">
+                <div class="col-md-12">
+                    <label>Attachments</label>
+                    <div class="file-upload-container border p-3 text-center">
+                        <div class="custom-file">
+                            <input type="file" name="UploadedFile" class="custom-file-input" id="customFile" style="display: none;">
+                            <label class="btn btn-link text-primary p-0" for="customFile">
+                                <i class="fas fa-folder-open"></i> <span class="text-primary">Browse Files</span>
+                            </label>
+                            <span class="ml-2">or drag files here</span>
+
+                            <div id="fileNamePreview" class="mt-3" style="display: none;">
+                                <span class="text-success fw-bold" id="fileNameText"></span>
+                                <span id="removeFileBtn" style="cursor: pointer; color: red; margin-left: 10px; font-weight: bold;">
+                                    &times;
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label asp-for="Email" class="control-label"></label>
-                <input asp-for="Email" class="form-control" />
-                <span asp-validation-for="Email" class="text-danger"></span>
-            </div>
-
-            <div class="form-group">
-                <label asp-for="PortId" class="control-label"></label>
-                <select asp-for="PortId" class="form-control" asp-items="ViewBag.PortId">
-                    <option value="">Select Port</option>
-                </select>
-                <span asp-validation-for="PortId" class="text-danger"></span>
-            </div>
-
-            <div class="form-group">
-                <label asp-for="DepartmentId" class="control-label"></label>
-                <select asp-for="DepartmentId" class="form-control" asp-items="ViewBag.DepartmentId">
-                    <option value="">Select Department</option>
-                </select>
-                <span asp-validation-for="DepartmentId" class="text-danger"></span>
-            </div>
-
-            <div class="form-group">
-                <label asp-for="CategoryId" class="control-label">Category</label>
-                <select asp-for="CategoryId" class="form-control" asp-items="ViewBag.CategoryId" id="CategoryDropdown">
-                    <option value="">-- Select Category --</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label asp-for="SubcategoryId" class="control-label">Subcategory</label>
-                <select asp-for="SubcategoryId" class="form-control" id="SubcategoryDropdown">
-                    <option value="">-- Select Subcategory --</option>
-                </select>
-            </div>
-
-
-            <div class="form-group">
-                <label asp-for="PriorityId" class="control-label"></label>
-                <select asp-for="PriorityId" class="form-control" asp-items="ViewBag.PriorityId">
-                    <option value="">Select Priority</option>
-                </select>
-                <span asp-validation-for="PriorityId" class="text-danger"></span>
-            </div>
-
-            <div class="form-group">
-                <label asp-for="Description" class="control-label"></label>
-                <textarea asp-for="Description" class="form-control" rows="4"></textarea>
-                <span asp-validation-for="Description" class="text-danger"></span>
-            </div>
-
-            <div class="form-group">
-                <label asp-for="UploadedFile" class="control-label">Upload File</label>
-                <input type="file" name="UploadedFile" class="form-control" />
-
-            </div>
-
- 
-            <div class="form-group mt-3">
-                <input type="submit" value="Create" class="btn btn-primary" />
-                <a asp-action="Index" class="btn btn-secondary ml-2">Back to List</a> 
-            </div>
-        </form>
+            <br />
+                <!-- Action Buttons -->
+                <div class="form-row">
+                    <div class="col-md-12 text-right">
+                        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+                        <input type="submit" value="Submit" class="btn btn-primary ml-2" />
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
+
+<style>
+    .card {
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+    }
+
+    .card-header {
+        background-color: #f8f9fa;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+        .card-header h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0;
+        }
+
+        .card-header h3 {
+            font-size: 1.25rem;
+            color: #6c757d;
+            margin-bottom: 0;
+        }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    label {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+
+    .file-upload-container {
+        background-color: #f8f9fa;
+        border-radius: 0.25rem;
+    }
+
+    .form-control {
+        margin-bottom: 1rem;
+    }
+</style>
 
 @section Scripts {
     @await Html.PartialAsync("_ValidationScriptsPartial")
-
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 
     <script>
         $(document).ready(function () {
@@ -118,8 +176,32 @@
                     $('#SubcategoryDropdown').empty().append('<option value="">-- Select Subcategory --</option>');
                 }
             });
+
+            $(".custom-file-input").on("change", function() {
+                var fileName = $(this).val().split("\\").pop();
+                $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
+            });
         });
+
+        const fileInput = document.getElementById("customFile");
+         const fileNamePreview = document.getElementById("fileNamePreview");
+         const fileNameText = document.getElementById("fileNameText");
+         const removeFileBtn = document.getElementById("removeFileBtn");
+
+         fileInput.addEventListener("change", function () {
+             if (fileInput.files.length > 0) {
+                 fileNameText.textContent = fileInput.files[0].name;
+                 fileNamePreview.style.display = "block";
+             } else {
+                 fileNamePreview.style.display = "none";
+                 fileNameText.textContent = "";
+             }
+         });
+
+         removeFileBtn.addEventListener("click", function () {
+             fileInput.value = "";
+             fileNamePreview.style.display = "none";
+             fileNameText.textContent = "";
+         });
     </script>
 }
-
-

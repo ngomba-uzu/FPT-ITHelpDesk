@@ -9,6 +9,9 @@ using ITHelpDesk.Data;
 using ITHelpDesk.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
+using System.Text.RegularExpressions;
+using ITHelpDesk.Models.ViewModels;
+using Microsoft.AspNetCore.Identity.UI.Services;
 
 namespace ITHelpDesk.Controllers
 {
@@ -16,11 +19,15 @@ namespace ITHelpDesk.Controllers
     public class TicketsController : Controller
     { private readonly ApplicationDbContext _context;
         private readonly UserManager<IdentityUser> _userManager;
+        private readonly IWebHostEnvironment _env;
+        private readonly IEmailSender _emailSender;
 
-        public TicketsController(ApplicationDbContext context, UserManager<IdentityUser> userManager)
+        public TicketsController(ApplicationDbContext context, UserManager<IdentityUser> userManager, IWebHostEnvironment env, IEmailSender emailSender)
         {
             _context = context;
             _userManager = userManager;
+            _env = env;
+            _emailSender = emailSender;
         }
 
         // GET: Tickets
@@ -162,10 +169,84 @@ namespace ITHelpDesk.Controllers
                 ticket.PortId = appUser.PortId;
                 ticket.DepartmentId = appUser.DepartmentId;
                 ticket.CreatedBy = appUser.Id;
-                ticket.StatusId = 1;
+
+                var defaultStatus = await _context.Status
+                 .FirstOrDefaultAsync(s => s.StatusName == "Unassigned");
+
+                if (defaultStatus == null)
+                {
+                    ModelState.AddModelError(string.Empty, "Default status 'Unassigned' not found. Please add it to the database.");
+                    LoadDropdowns(ticket);
+                    return View(ticket);
+                }
+
+                ticket.StatusId = defaultStatus.Id;
+
+
+                // ✅ Generate Ticket Number
+                var lastTicketNumber = await _context.Tickets
+                    .Where(t => t.TicketNumber.StartsWith("#TKT-"))
+                    .OrderByDescending(t => t.TicketNumber)
+                    .Select(t => t.TicketNumber)
+                    .FirstOrDefaultAsync();
+
+                int newTicketSequence = 1;
+
+                if (!string.IsNullOrEmpty(lastTicketNumber))
+                {
+                    var match = Regex.Match(lastTicketNumber, @"#TKT-(\d+)");
+                    if (match.Success)
+                    {
+                        newTicketSequence = int.Parse(match.Groups[1].Value) + 1;
+                    }
+                }
+
+                ticket.TicketNumber = $"#TKT-{newTicketSequence.ToString("D3")}";
+
 
                 _context.Tickets.Add(ticket);
                 await _context.SaveChangesAsync();  // Save changes to the database
+                
+                ticket = await _context.Tickets
+                  .Include(t => t.Priority)
+                  .FirstOrDefaultAsync(t => t.Id == ticket.Id);
+
+
+                // ✅ Send email to all technicians in the TechnicianGroup
+                var technicianGroup = await _context.TechnicianGroups
+                    .Include(g => g.Technicians)
+                    .FirstOrDefaultAsync(g => g.Id == ticket.TechnicianGroupId);
+
+                if (technicianGroup != null && technicianGroup.Technicians.Any())
+                {
+
+                    var subject = $"New Ticket Created: {ticket.TicketNumber}";
+    var message = $@"
+        <p>A new support ticket has been submitted:</p>
+        <ul>
+            <li><strong>Ticket Number:</strong> {ticket.TicketNumber}</li>
+            <li><strong>Description:</strong> {ticket.Description}</li>
+            <li><strong>Priority:</strong> {ticket.Priority?.PriorityName ?? "N/A"}</li>
+            <li><strong>Submitted By:</strong> {ticket.RequesterName}</li>
+            <li><strong>Date:</strong> {ticket.CreatedAt.ToString("yyyy/MM/dd HH:mm:ss")}</li>
+        </ul>
+        <p>Please log in to the system to view and assign the ticket.</p>
+    ";
+
+                    foreach (var technician in technicianGroup.Technicians)
+                    {
+                        if (!string.IsNullOrEmpty(technician.Email))
+                        {
+                            await _emailSender.SendEmailAsync(technician.Email, subject, message);
+                        }
+                    }
+                }
+
+
+
+
+                // ✅ Show success message
+                TempData["SuccessMessage"] = "Ticket successfully created.";
 
                 return RedirectToAction("Index");
             }
@@ -210,27 +291,7 @@ namespace ITHelpDesk.Controllers
         }
 
 
-        private async Task SendEmailConfirmation(Ticket ticket)
-        {
-            // You can use any email service here like SMTP, SendGrid, etc.
-            var subject = "Ticket Created Successfully";
-            var body = $"Hi {ticket.RequesterName},<br/><br/>" +
-                       $"Your ticket has been submitted successfully.<br/>" +
-                       $"<strong>Ticket Details:</strong><br/>" +
-                       $"Port: {ticket.Port?.PortName}<br/>" +
-                       $"Department: {ticket.Department?.DepartmentName}<br/>" +
-                       $"Category: {ticket.Category?.CategoryName}<br/>" +
-                       $"Subcategory: {ticket.Subcategory?.SubcategoryName}<br/>" +
-                       $"Priority: {ticket.Priority?.PriorityName}<br/>" +
-                       $"Description: {ticket.Description}<br/><br/>" +
-                       $"Thank you.";
-
-            // Example using an injected email sender
-            // await _emailSender.SendEmailAsync(ticket.Email, subject, body);
-
-            Console.WriteLine("Email sent to: " + ticket.Email); // Simulate
-        }
-
+       
 
         // GET: Tickets/Edit/5
         public async Task<IActionResult> Edit(int? id)
@@ -335,5 +396,6 @@ namespace ITHelpDesk.Controllers
         {
             return _context.Tickets.Any(e => e.Id == id);
         }
+
     }
 }

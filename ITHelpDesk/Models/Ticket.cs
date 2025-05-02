@@ -9,6 +9,11 @@ namespace ITHelpDesk.Models
         public int Id { get; set; }
 
         [Required]
+        [Display(Name = "Ticket Number")]
+        [ValidateNever]
+        public string TicketNumber { get; set; }
+
+        [Required]
         [Display(Name = "Requester Name")]
         public string RequesterName { get; set; }
         [Required]
@@ -50,12 +55,33 @@ namespace ITHelpDesk.Models
         public int TechnicianGroupId { get; set; }
         [ValidateNever]
         public string CreatedBy { get; set; }
-        [ValidateNever]
-        public ApplicationUser User { get; set; }
+        
 
         [ValidateNever]
         public Status Status { get; set; }
 
+        [ValidateNever]
+        public bool? IsResolutionAcknowledged { get; set; } // null = pending, true = yes, false = no
+
+        public DateTime? ClosedDate { get; set; }
+
+        [ValidateNever]
+        public string? Resolution { get; set; }
+
+        [ValidateNever]
+        public string? ReopenReason { get; set; }
+
+        [ValidateNever]
+        public string? ReassignReason { get; set; }
+
+        [ValidateNever]
+        public string? EscalateReason { get; set; }
+        public int? SeniorTechnicianId { get; set; } // who the ticket was escalated to
+        public string? SeniorTechnicianResponse { get; set; } // response added by senior tech
+        public int? ClosedByTechnicianId { get; set; }
+        [ValidateNever]
+        public Technician ClosedByTechnician { get; set; }
+        public SeniorTechnician? SeniorTechnician { get; set; }
         [ValidateNever]
         public Technician AssignedTechnician { get; set; }
 

@@ -1,0 +1,33 @@
+﻿@model ITHelpDesk.Models.ViewModels.EscalateTicketViewModel
+
+@{
+    ViewData["Title"] = "Escalate Ticket";
+}
+
+<h2>Escalate Ticket</h2>
+
+<form asp-action="Escalate" method="post">
+    <input type="hidden" asp-for="TicketId" />
+
+    <div class="form-group">
+        <label for="SeniorTechnicianId">Select Senior Technician</label>
+        <select asp-for="SeniorTechnicianId" class="form-control" asp-items="@(new SelectList(Model.SeniorTechnicians, "Id", "FullName"))">
+            <option value="">-- Select Senior Technician --</option>
+        </select>
+        <span asp-validation-for="SeniorTechnicianId" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label for="EscalateReason">Reason for Escalation</label>
+        <textarea asp-for="EscalateReason" class="form-control" rows="4"></textarea>
+        <span asp-validation-for="EscalateReason" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-warning">Submit Escalation</button>
+</form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

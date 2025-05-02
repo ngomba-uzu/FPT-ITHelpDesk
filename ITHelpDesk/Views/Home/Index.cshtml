@@ -4,18 +4,121 @@
 }
 
 <div class="container mt-5">
-    <h1 class="mb-4">Welcome to the Dashboard</h1>
-
     @if (role == "User")
     {
-        <div class="alert alert-primary">User Dashboard</div>
-        <ul>
-            <li>Total Tickets: (Coming soon)</li>
-            <li>Pending Tickets: (Coming soon)</li>
-            <li>Resolved Tickets: (Coming soon)</li>
-            <li><strong>Recently Created Tickets</strong>: (Coming soon)</li>
-        </ul>
-        <a class="btn btn-success" href="#">Create Ticket</a>
+        <!-- Summary Cards -->
+        <div class="row g-3 mb-4">
+            <!-- Total Tickets -->
+            <div class="col-md-4">
+                <div class="card border-start border-primary border-4 shadow-sm h-100">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div class="text-center w-100">
+                            <h6 class="text-muted mb-1">Total Tickets</h6>
+                            <h3 class="fw-bold mb-0">@ViewBag.TotalTickets</h3>
+                        </div>
+                        <div class="icon-bg bg-primary bg-opacity-10 ms-3">
+                            <i class="fas fa-ticket-alt text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Tickets -->
+            <div class="col-md-4">
+                <div class="card border-start border-warning border-4 shadow-sm h-100">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div class="text-center w-100">
+                            <h6 class="text-muted mb-1">Pending Tickets</h6>
+                            <h3 class="fw-bold mb-0">@ViewBag.PendingTickets</h3>
+                        </div>
+                        <div class="icon-bg bg-warning bg-opacity-10 ms-3">
+                            <i class="fas fa-clock text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Closed Tickets -->
+            <div class="col-md-4">
+                <div class="card border-start border-success border-4 shadow-sm h-100">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div class="text-center w-100">
+                            <h6 class="text-muted mb-1">Closed Tickets</h6>
+                            <h3 class="fw-bold mb-0">@ViewBag.ReceivedTickets</h3>
+                        </div>
+                        <div class="icon-bg bg-success bg-opacity-10 ms-3">
+                            <i class="fas fa-check-circle text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- End of row -->
+        <!-- Recent Tickets Table -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-white border-bottom-0 pb-0">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0">Recent Tickets</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr class="table-light">
+                                <th>Ticket #</th>
+                                <th>Requester</th>
+                                <th>Category</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var ticket in ViewBag.RecentTickets)
+                            {
+                                <tr>
+                                    <td class="fw-bold">@ticket.TicketNumber</td>
+                                    <td>@ticket.RequesterName</td>
+                                    <td>
+                                        <span class="d-block">@ticket.Category?.CategoryName</span>
+                                        <small class="text-muted">@ticket.Subcategory?.SubcategoryName</small>
+                                    </td>
+                                    <td>
+                                        @{
+                                            var priorityClass = "";
+                                            switch (ticket.Priority?.PriorityName?.ToLower())
+                                            {
+                                                case "high":
+                                                    priorityClass = "text-danger";
+                                                    break;
+                                                case "medium":
+                                                    priorityClass = "text-warning";
+                                                    break;
+                                                case "low":
+                                                    priorityClass = "text-success";
+                                                    break;
+                                                default:
+                                                    priorityClass = "text-info";
+                                                    break;
+                                            }
+                                        }
+                                        <span class="@priorityClass">
+                                            <i class="fas fa-circle me-1" style="font-size:8px"></i>
+                                            @ticket.Priority?.PriorityName
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark">
+                                            <i class="fas fa-circle text-warning me-1" style="font-size:8px"></i>
+                                            Pending
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     }
     else if (role == "Technician")
     {
@@ -25,6 +128,8 @@
             <li>Unassigned Tickets to Take: (Coming soon)</li>
         </ul>
     }
+
+
     else if (role == "Technical Support")
     {
         <div class="alert alert-info">Technical Support Dashboard</div>
@@ -40,3 +145,41 @@
         <div class="alert alert-danger">No role assigned. Please contact the administrator.</div>
     }
 </div>
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+
+<style>
+    .icon-bg {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .card {
+        border-radius: 10px;
+        border: 1px solid #e9ecef;
+    }
+
+    .table th {
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6c757d;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+
+    .card-body {
+        min-height: 120px; /* optional fixed height */
+    }
+
+
+</style>

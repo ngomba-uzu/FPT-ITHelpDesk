@@ -1,12 +1,132 @@
-﻿@model IEnumerable<ITHelpDesk.Models.Ticket> 
+﻿@model IEnumerable<ITHelpDesk.Models.Ticket>
+
 @{
     ViewData["Title"] = "My Tickets";
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
 }
 
-<h2>My Tickets</h2>
+<h2>Assigned Tickets</h2>
 
-<div class="btn-group" role="group">
-    <a asp-action="AssignedTickets" class="btn btn-primary">Assigned</a>
-    <a asp-action="UnassignedTickets" class="btn btn-warning">Unassigned</a>
-    <a asp-action="ClosedTickets" class="btn btn-success">Closed</a>
+<div class="btn-group mb-3" role="group">
+    <a asp-action="MyTickets" class="btn @(currentAction == "MyTickets" ? "btn-primary" : "btn-outline-primary")">Assigned</a>
+    <a asp-action="ClosedTickets" class="btn @(currentAction == "ClosedTickets" ? "btn-success" : "btn-outline-success")">Closed</a>
+    <a asp-action="UnassignedTickets" class="btn @(currentAction == "UnassignedTickets" ? "btn-warning" : "btn-outline-warning")">Unassigned</a>
 </div>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>TicketNumber</th>
+            <th>Description</th>
+            <th>Category</th>
+            <th>Subcategory</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Assigned To</th>
+            <th>Document</th>
+            <th>Created At</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var ticket in Model)
+        {
+            <tr>
+                <td>@ticket.TicketNumber</td>
+                <td>@ticket.Description</td>
+                <td>@ticket.Category?.CategoryName</td>
+                <td>@ticket.Subcategory?.SubcategoryName</td>
+                <td>@ticket.Priority?.PriorityName</td>
+                <td>@ticket.Status?.StatusName</td>
+                <td>@ticket.AssignedTechnician?.FullName</td>
+                <td>
+                    @if (!string.IsNullOrEmpty(ticket.FileName))
+                    {
+                        <a href="~/uploads/@ticket.FileName" target="_blank">View Document</a>
+                    }
+                    else
+                    {
+                        <span>No document</span>
+                    }
+                </td>
+                <td>@ticket.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                <td>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-light" type="button" id="dropdownMenuButton-@ticket.Id" data-bs-toggle="dropdown" aria-expanded="false" style="border: none;">
+                            &#x22EE;
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton-@ticket.Id">
+                            <li>
+                                <form asp-action="Resolution" asp-controller="Technicians" method="get">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@ticket.Id" />
+                                    <button type="submit" class="dropdown-item">Resolution</button>
+                                </form>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" asp-action="Details" asp-controller="Tickets" asp-route-id="@ticket.Id">View Information</a>
+                            </li>
+                            <li>
+                                <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#reassignModal" onclick="setReassignTicketId(@ticket.Id)">
+                                    Reassign
+                                </button>
+                            </li>
+                            <li>
+                                <form asp-action="Escalate" asp-controller="Technicians" method="get">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@ticket.Id" />
+                                    <button type="submit" class="dropdown-item">Escalate</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<!-- Reassign Modal -->
+<div class="modal fade" id="reassignModal" tabindex="-1" aria-labelledby="reassignModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form asp-action="ReassignTicket" asp-controller="Technicians" method="post">
+            @Html.AntiForgeryToken()
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="reassignModalLabel">Reassign Ticket</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="reassignTicketId" name="TicketId" />
+
+                    <div class="mb-3">
+                        <label for="TechnicianId" class="form-label">Select Technician</label>
+                        <select class="form-select" name="TechnicianId" required>
+                            <option value="">-- Select Technician --</option>
+                            @foreach (var tech in ViewBag.Technicians as List<ITHelpDesk.Models.Technician>)
+                            {
+                                <option value="@tech.Id">@tech.FullName</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="ReassignReason" class="form-label">Reason for Reassignment</label>
+                        <textarea class="form-control" name="ReassignReason" required></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function setReassignTicketId(ticketId) {
+        document.getElementById("reassignTicketId").value = ticketId;
+    }
+</script>

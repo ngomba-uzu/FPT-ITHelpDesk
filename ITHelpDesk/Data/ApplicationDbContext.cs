@@ -22,6 +22,7 @@ namespace ITHelpDesk.Data
         public DbSet<Technician> Technicians { get; set; }
         public DbSet<Status> Status { get; set; }
         public DbSet<TechnicianGroup> TechnicianGroups { get; set; }
+        public DbSet<SeniorTechnician> SeniorTechnicians { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

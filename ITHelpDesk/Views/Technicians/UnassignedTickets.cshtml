@@ -2,9 +2,17 @@
 
 @{
     ViewData["Title"] = "Unassigned Tickets";
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
 }
 
 <h2>Unassigned Tickets</h2>
+<div class="btn-group mb-3" role="group">
+    <a asp-action="UnassignedTickets" class="btn @(currentAction == "UnassignedTickets" ? "btn-warning" : "btn-outline-warning")">Unassigned</a>
+    <a asp-action="MyTickets" class="btn @(currentAction == "MyTickets" ? "btn-primary" : "btn-outline-primary")">Assigned</a>
+    <a asp-action="ClosedTickets" class="btn @(currentAction == "ClosedTickets" ? "btn-success" : "btn-outline-success")">Closed</a>
+    
+   
+</div>
 
 @if (!Model.Any())
 {
@@ -15,6 +23,7 @@ else
     <table class="table table-bordered table-striped">
         <thead>
             <tr>
+                <th>TicketNumber</th>
                 <th>Requester</th>
                 <th>Email</th>
                 <th>Department</th>
@@ -31,6 +40,7 @@ else
             @foreach (var ticket in Model)
             {
                 <tr>
+                    <td>@ticket.TicketNumber</td>
                     <td>@ticket.RequesterName</td>
                     <td>@ticket.Email</td>
                     <td>@ticket.Department?.DepartmentName</td>
@@ -41,7 +51,7 @@ else
                     <td>@ticket.Description</td>
                     <td>@ticket.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
                     <td>
-                        <form asp-action="AssignToMe" asp-controller="Tickets" method="post">
+                        <form asp-action="AssignToMe" asp-controller="Technicians" method="post">
                             <input type="hidden" name="id" value="@ticket.Id" />
                             <button type="submit" class="btn btn-sm btn-success">Assign to Me</button>
                         </form>

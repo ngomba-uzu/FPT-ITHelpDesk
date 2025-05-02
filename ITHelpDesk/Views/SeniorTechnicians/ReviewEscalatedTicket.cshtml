@@ -1,0 +1,33 @@
+﻿@model ITHelpDesk.Models.Ticket
+
+@{
+    ViewData["Title"] = "Review Escalated Ticket";
+}
+
+<h2>Review Escalated Ticket</h2>
+
+<div class="card">
+    <div class="card-body">
+        <p><strong>Ticket ID:</strong> @Model.Id</p>
+        <p><strong>Subcategory:</strong> @Model.Subcategory.SubcategoryName</p>
+        <p><strong>Description:</strong> @Model.Description</p>
+        <p><strong>Escalate Reason:</strong> @Model.EscalateReason</p>
+        <p><strong>Submitted By:</strong> @Model.RequesterName</p>
+        <p><strong>Date Submitted:</strong> @Model.CreatedAt.ToString("yyyy-MM-dd")</p>
+    </div>
+</div>
+
+<hr />
+
+<form asp-action="SubmitSeniorResponse" method="post">
+    <input type="hidden" name="TicketId" value="@Model.Id" />
+
+    <div class="form-group">
+        <label>Response:</label>
+        <textarea name="Response" class="form-control" rows="5" required></textarea>
+    </div>
+
+    <br />
+    <button type="submit" class="btn btn-success">Submit</button>
+</form>
+

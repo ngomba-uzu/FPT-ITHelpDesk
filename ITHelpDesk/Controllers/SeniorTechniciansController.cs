@@ -10,23 +10,22 @@ using ITHelpDesk.Models;
 
 namespace ITHelpDesk.Controllers
 {
-    public class UserPortsController : Controller
+    public class SeniorTechniciansController : Controller
     {
         private readonly ApplicationDbContext _context;
 
-        public UserPortsController(ApplicationDbContext context)
+        public SeniorTechniciansController(ApplicationDbContext context)
         {
             _context = context;
         }
 
-        // GET: UserPorts
+        // GET: SeniorTechnicians
         public async Task<IActionResult> Index()
         {
-            var applicationDbContext = _context.UserPorts.Include(u => u.Port).Include(u => u.User);
-            return View(await applicationDbContext.ToListAsync());
+            return View(await _context.SeniorTechnicians.ToListAsync());
         }
 
-        // GET: UserPorts/Details/5
+        // GET: SeniorTechnicians/Details/5
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -34,45 +33,39 @@ namespace ITHelpDesk.Controllers
                 return NotFound();
             }
 
-            var userPorts = await _context.UserPorts
-                .Include(u => u.Port)
-                .Include(u => u.User)
+            var seniorTechnician = await _context.SeniorTechnicians
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (userPorts == null)
+            if (seniorTechnician == null)
             {
                 return NotFound();
             }
 
-            return View(userPorts);
+            return View(seniorTechnician);
         }
 
-        // GET: UserPorts/Create
+        // GET: SeniorTechnicians/Create
         public IActionResult Create()
         {
-            ViewData["PortId"] = new SelectList(_context.Ports, "Id", "PortName");
-            ViewData["UserId"] = new SelectList(_context.ApplicationUsers, "Id", "FullName");
             return View();
         }
 
-        // POST: UserPorts/Create
+        // POST: SeniorTechnicians/Create
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,UserId,PortId")] UserPorts userPorts)
+        public async Task<IActionResult> Create([Bind("Id,FullName,Email")] SeniorTechnician seniorTechnician)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(userPorts);
+                _context.Add(seniorTechnician);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["PortId"] = new SelectList(_context.Ports, "Id", "PortName", userPorts.PortId);
-            ViewData["UserId"] = new SelectList(_context.ApplicationUsers, "Id", "FullName", userPorts.UserId);
-            return View(userPorts);
+            return View(seniorTechnician);
         }
 
-        // GET: UserPorts/Edit/5
+        // GET: SeniorTechnicians/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -80,24 +73,22 @@ namespace ITHelpDesk.Controllers
                 return NotFound();
             }
 
-            var userPorts = await _context.UserPorts.FindAsync(id);
-            if (userPorts == null)
+            var seniorTechnician = await _context.SeniorTechnicians.FindAsync(id);
+            if (seniorTechnician == null)
             {
                 return NotFound();
             }
-            ViewData["PortId"] = new SelectList(_context.Ports, "Id", "PortName", userPorts.PortId);
-            ViewData["UserId"] = new SelectList(_context.ApplicationUsers, "Id", "FullName", userPorts.UserId);
-            return View(userPorts);
+            return View(seniorTechnician);
         }
 
-        // POST: UserPorts/Edit/5
+        // POST: SeniorTechnicians/Edit/5
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,UserId,PortId")] UserPorts userPorts)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,FullName,Email")] SeniorTechnician seniorTechnician)
         {
-            if (id != userPorts.Id)
+            if (id != seniorTechnician.Id)
             {
                 return NotFound();
             }
@@ -106,12 +97,12 @@ namespace ITHelpDesk.Controllers
             {
                 try
                 {
-                    _context.Update(userPorts);
+                    _context.Update(seniorTechnician);
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!UserPortsExists(userPorts.Id))
+                    if (!SeniorTechnicianExists(seniorTechnician.Id))
                     {
                         return NotFound();
                     }
@@ -122,12 +113,10 @@ namespace ITHelpDesk.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["PortId"] = new SelectList(_context.Ports, "Id", "PortName", userPorts.PortId);
-            ViewData["UserId"] = new SelectList(_context.ApplicationUsers, "Id", "FullName", userPorts.UserId);
-            return View(userPorts);
+            return View(seniorTechnician);
         }
 
-        // GET: UserPorts/Delete/5
+        // GET: SeniorTechnicians/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -135,36 +124,62 @@ namespace ITHelpDesk.Controllers
                 return NotFound();
             }
 
-            var userPorts = await _context.UserPorts
-                .Include(u => u.Port)
-                .Include(u => u.User)
+            var seniorTechnician = await _context.SeniorTechnicians
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (userPorts == null)
+            if (seniorTechnician == null)
             {
                 return NotFound();
             }
 
-            return View(userPorts);
+            return View(seniorTechnician);
         }
 
-        // POST: UserPorts/Delete/5
+        // POST: SeniorTechnicians/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var userPorts = await _context.UserPorts.FindAsync(id);
-            if (userPorts != null)
+            var seniorTechnician = await _context.SeniorTechnicians.FindAsync(id);
+            if (seniorTechnician != null)
             {
-                _context.UserPorts.Remove(userPorts);
+                _context.SeniorTechnicians.Remove(seniorTechnician);
             }
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
-        private bool UserPortsExists(int id)
+        private bool SeniorTechnicianExists(int id)
         {
-            return _context.UserPorts.Any(e => e.Id == id);
+            return _context.SeniorTechnicians.Any(e => e.Id == id);
         }
+
+        public async Task<IActionResult> ReviewEscalatedTicket(int id)
+        {
+            var ticket = await _context.Tickets
+                .Include(t => t.Department)
+                .Include(t => t.Priority)
+                .Include(t => t.Category)
+                .Include(t => t.Subcategory)
+                .Include(t => t.Port)
+                .FirstOrDefaultAsync(t => t.Id == id);
+
+            if (ticket == null) return NotFound();
+
+            return View(ticket);
+        }
+        [HttpPost]
+        public async Task<IActionResult> SubmitSeniorResponse(int TicketId, string Response)
+        {
+            var ticket = await _context.Tickets.FindAsync(TicketId);
+            if (ticket == null) return NotFound();
+
+            ticket.SeniorTechnicianResponse = Response;
+            _context.Update(ticket);
+            await _context.SaveChangesAsync();
+
+            return Content("Response submitted successfully. The technician will now handle it.");
+        }
+
     }
 }

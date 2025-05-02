@@ -96,7 +96,7 @@
                             @foreach (var item in Model)
                             {
                                 <tr>
-                                    <td>@Html.DisplayFor(modelItem => item.User.UserName)</td>
+                                    <td>@Html.DisplayFor(modelItem => item.User.FullName)</td>
                                     <td>@Html.DisplayFor(modelItem => item.Port.PortName)</td>
                                     <td class="text-end action-links">
                                         <a asp-action="Edit" asp-route-id="@item.Id" class="text-primary">

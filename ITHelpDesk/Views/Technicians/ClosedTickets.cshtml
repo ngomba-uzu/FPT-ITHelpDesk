@@ -1,0 +1,78 @@
+﻿@model IEnumerable<ITHelpDesk.Models.Ticket>
+
+@{
+    ViewData["Title"] = "Closed Tickets";
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+}
+
+
+<h2>Closed Tickets</h2>
+<div class="btn-group mb-3" role="group">
+    <a asp-action="ClosedTickets" class="btn @(currentAction == "ClosedTickets" ? "btn-success" : "btn-outline-success")">Closed</a>
+    <a asp-action="MyTickets" class="btn @(currentAction == "MyTickets" ? "btn-primary" : "btn-outline-primary")">Assigned</a>
+    <a asp-action="UnassignedTickets" class="btn @(currentAction == "UnassignedTickets" ? "btn-warning" : "btn-outline-warning")">Unassigned</a>
+</div>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Ticket Number</th>
+            <th>Description</th>
+            <th>Status</th>
+            <th>Closed Date</th>
+            <th>Acknowledged</th>
+            <th>Assigned To</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var ticket in Model)
+        {
+            <tr>
+                <td>@ticket.TicketNumber</td>
+                <td>@ticket.Description</td>
+                <td>@(ticket.Status != null ? ticket.Status.StatusName : "No Status")</td>
+                <td>@ticket.ClosedDate?.ToString("dd/MM/yyyy")</td>
+                <td>@(ticket.IsResolutionAcknowledged.GetValueOrDefault() ? "Yes" : "No")</td>
+                <td>@ticket.AssignedTechnician?.FullName</td>
+                <td>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#reopenModal" onclick="setReopenTicketId(@ticket.Id)">
+                        Re-open
+                    </button>
+
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<!-- Reopen Modal -->
+<div class="modal fade" id="reopenModal" tabindex="-1" aria-labelledby="reopenModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form asp-action="ReopenTicket" asp-controller="Technicians" method="post">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="reopenModalLabel">Reopen Ticket</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="reopenTicketId" name="TicketId" />
+                    <div class="mb-3">
+                        <label for="ReopenReason" class="form-label">Reason for reopening</label>
+                        <textarea class="form-control" name="ReopenReason" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Submit</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function setReopenTicketId(ticketId) {
+      document.getElementById("reopenTicketId").value = ticketId;
+    }
+</script>

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using System.ComponentModel.DataAnnotations;
 
 namespace ITHelpDesk.Models
@@ -14,7 +15,10 @@ namespace ITHelpDesk.Models
       
         public int PortId { get; set; }
 
+        [ValidateNever]
         public ApplicationUser User { get; set; }
+
+        [ValidateNever]
         public Port Port { get; set; }
     }
 }
