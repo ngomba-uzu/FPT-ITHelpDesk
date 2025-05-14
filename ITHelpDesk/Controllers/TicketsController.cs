@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Authorization;
 using System.Text.RegularExpressions;
 using ITHelpDesk.Models.ViewModels;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using ITHelpDesk.Services;
 
 namespace ITHelpDesk.Controllers
 {
@@ -21,13 +22,15 @@ namespace ITHelpDesk.Controllers
         private readonly UserManager<IdentityUser> _userManager;
         private readonly IWebHostEnvironment _env;
         private readonly IEmailSender _emailSender;
+        private readonly NotificationService _notificationService;
 
-        public TicketsController(ApplicationDbContext context, UserManager<IdentityUser> userManager, IWebHostEnvironment env, IEmailSender emailSender)
+        public TicketsController(ApplicationDbContext context, UserManager<IdentityUser> userManager, IWebHostEnvironment env, IEmailSender emailSender, NotificationService notificationService)
         {
             _context = context;
             _userManager = userManager;
             _env = env;
             _emailSender = emailSender;
+            _notificationService = notificationService;
         }
 
         // GET: Tickets
@@ -48,12 +51,7 @@ namespace ITHelpDesk.Controllers
                 .Include(t => t.Priority)
                 .Include(t => t.Subcategory);
 
-           /* // If user is Admin or Technician, show all tickets
-            if (await _userManager.IsInRoleAsync(appUser, "Admin") || await _userManager.IsInRoleAsync(appUser, "Technician"))
-            {
-                return View(await ticketsQuery.ToListAsync());
-            }
-*/
+
             // Otherwise, show only tickets created by the logged-in user
             var userTickets = await ticketsQuery
                 .Where(t => t.CreatedBy == appUser.Id) // Make sure this field is saved when creating a ticket
@@ -61,6 +59,7 @@ namespace ITHelpDesk.Controllers
 
             return View(userTickets);
         }
+
 
 
         // GET: Tickets/Details/5
@@ -111,7 +110,8 @@ namespace ITHelpDesk.Controllers
             return View(ticket);
         }
 
-        
+
+
         // POST: Ticket/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -127,9 +127,9 @@ namespace ITHelpDesk.Controllers
                     return Unauthorized();
                 }
 
-                // ✅ Get the TechnicianGroupId from the selected Subcategory
+                // Get TechnicianGroupId from selected Subcategory
                 var subcategory = await _context.Subcategories
-                                        .FirstOrDefaultAsync(s => s.Id == ticket.SubcategoryId);
+                    .FirstOrDefaultAsync(s => s.Id == ticket.SubcategoryId);
 
                 if (subcategory == null)
                 {
@@ -140,6 +140,7 @@ namespace ITHelpDesk.Controllers
 
                 ticket.TechnicianGroupId = subcategory.TechnicianGroupId;
 
+                // File upload
                 if (UploadedFile != null && UploadedFile.Length > 0)
                 {
                     var fileName = Path.GetFileName(UploadedFile.FileName);
@@ -163,6 +164,7 @@ namespace ITHelpDesk.Controllers
                     return View(ticket);
                 }
 
+                // Set ticket metadata
                 ticket.CreatedAt = DateTime.Now;
                 ticket.RequesterName = appUser.FullName;
                 ticket.Email = appUser.Email;
@@ -170,8 +172,9 @@ namespace ITHelpDesk.Controllers
                 ticket.DepartmentId = appUser.DepartmentId;
                 ticket.CreatedBy = appUser.Id;
 
+                // Assign default status
                 var defaultStatus = await _context.Status
-                 .FirstOrDefaultAsync(s => s.StatusName == "Unassigned");
+                    .FirstOrDefaultAsync(s => s.StatusName == "Unassigned");
 
                 if (defaultStatus == null)
                 {
@@ -182,8 +185,7 @@ namespace ITHelpDesk.Controllers
 
                 ticket.StatusId = defaultStatus.Id;
 
-
-                // ✅ Generate Ticket Number
+                // Generate ticket number
                 var lastTicketNumber = await _context.Tickets
                     .Where(t => t.TicketNumber.StartsWith("#TKT-"))
                     .OrderByDescending(t => t.TicketNumber)
@@ -191,7 +193,6 @@ namespace ITHelpDesk.Controllers
                     .FirstOrDefaultAsync();
 
                 int newTicketSequence = 1;
-
                 if (!string.IsNullOrEmpty(lastTicketNumber))
                 {
                     var match = Regex.Match(lastTicketNumber, @"#TKT-(\d+)");
@@ -201,39 +202,49 @@ namespace ITHelpDesk.Controllers
                     }
                 }
 
-                ticket.TicketNumber = $"#TKT-{newTicketSequence.ToString("D3")}";
+                ticket.TicketNumber = $"#TKT-{newTicketSequence:D3}";
 
-
+                // Save the ticket
                 _context.Tickets.Add(ticket);
-                await _context.SaveChangesAsync();  // Save changes to the database
-                
+                await _context.SaveChangesAsync();
+
+                // Load related data for email
                 ticket = await _context.Tickets
-                  .Include(t => t.Priority)
-                  .FirstOrDefaultAsync(t => t.Id == ticket.Id);
+                    .Include(t => t.Priority)
+                    .FirstOrDefaultAsync(t => t.Id == ticket.Id);
 
-
-                // ✅ Send email to all technicians in the TechnicianGroup
-                var technicianGroup = await _context.TechnicianGroups
-                    .Include(g => g.Technicians)
-                    .FirstOrDefaultAsync(g => g.Id == ticket.TechnicianGroupId);
-
-                if (technicianGroup != null && technicianGroup.Technicians.Any())
+                // ✅ Add high priority group notification
+                if (ticket.Priority?.PriorityName == "High" && ticket.TechnicianGroupId > 0)
                 {
+                    await _notificationService.CreateGroupNotification(
+                        ticket.TechnicianGroupId,
+                        $"🚨 High priority ticket {ticket.TicketNumber}",
+                        ticket.Id
+                    );
+                }
 
+                // Get technicians in the group AND assigned to the ticket's port
+                var matchingTechnicians = await _context.Technicians
+                    .Include(t => t.TechnicianPorts)
+                    .Where(t => t.TechnicianGroupId == ticket.TechnicianGroupId &&
+                                t.TechnicianPorts.Any(tp => tp.PortId == ticket.PortId))
+                    .ToListAsync();
+
+                if (matchingTechnicians.Any())
+                {
                     var subject = $"New Ticket Created: {ticket.TicketNumber}";
-    var message = $@"
+                    var message = $@"
         <p>A new support ticket has been submitted:</p>
         <ul>
             <li><strong>Ticket Number:</strong> {ticket.TicketNumber}</li>
             <li><strong>Description:</strong> {ticket.Description}</li>
             <li><strong>Priority:</strong> {ticket.Priority?.PriorityName ?? "N/A"}</li>
             <li><strong>Submitted By:</strong> {ticket.RequesterName}</li>
-            <li><strong>Date:</strong> {ticket.CreatedAt.ToString("yyyy/MM/dd HH:mm:ss")}</li>
+            <li><strong>Date:</strong> {ticket.CreatedAt:yyyy/MM/dd HH:mm:ss}</li>
         </ul>
-        <p>Please log in to the system to view and assign the ticket.</p>
-    ";
+        <p>Please log in to the system to view and assign the ticket.</p>";
 
-                    foreach (var technician in technicianGroup.Technicians)
+                    foreach (var technician in matchingTechnicians)
                     {
                         if (!string.IsNullOrEmpty(technician.Email))
                         {
@@ -243,11 +254,7 @@ namespace ITHelpDesk.Controllers
                 }
 
 
-
-
-                // ✅ Show success message
                 TempData["SuccessMessage"] = "Ticket successfully created.";
-
                 return RedirectToAction("Index");
             }
             catch (Exception ex)
@@ -263,6 +270,9 @@ namespace ITHelpDesk.Controllers
                 return View(ticket);
             }
         }
+
+
+
 
 
 
@@ -399,3 +409,4 @@ namespace ITHelpDesk.Controllers
 
     }
 }
+ 

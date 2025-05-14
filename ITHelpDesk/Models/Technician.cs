@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 
 namespace ITHelpDesk.Models
@@ -26,6 +27,10 @@ namespace ITHelpDesk.Models
         [ValidateNever]
         public TechnicianGroup? TechnicianGroup { get; set; }
 
+        [ValidateNever]
+        public List<TechnicianPort> TechnicianPorts { get; set; } = new List<TechnicianPort>();
+
+       
 
     }
 

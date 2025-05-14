@@ -24,7 +24,9 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddTransient<MailKitEmailSender>();
-builder.Services.AddTransient<IEmailSender, EmailSender>(); 
+builder.Services.AddTransient<IEmailSender, EmailSender>();
+builder.Services.AddScoped<NotificationService>();
+
 
 
 

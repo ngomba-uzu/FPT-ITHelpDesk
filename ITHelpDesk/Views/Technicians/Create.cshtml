@@ -1,37 +1,47 @@
 ﻿@model ITHelpDesk.Models.Technician
 
 @{
+    Layout = "_Layout";
     ViewData["Title"] = "Create Technician";
+    var usersJson = ViewBag.UsersJson;
 }
 
 <h1>Create Technician</h1>
-
 <hr />
-<form asp-action="Create">
+
+<form asp-action="Create" method="post">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
     <div class="form-group">
-        <label asp-for="FullName" class="control-label"></label>
-        <input asp-for="FullName" class="form-control" />
+        <label asp-for="UserId" class="control-label">Select Registered User</label>
+        <select asp-for="UserId" class="form-control" asp-items="ViewBag.Users" onchange="populateUserDetails(this)">
+            <option value="">Select User</option>
+        </select>
+        <span asp-validation-for="UserId" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="FullName" class="control-label">Full Name</label>
+        <input asp-for="FullName" class="form-control" readonly id="FullName" />
         <span asp-validation-for="FullName" class="text-danger"></span>
     </div>
 
     <div class="form-group">
-        <label asp-for="Email" class="control-label"></label>
-        <input asp-for="Email" class="form-control" />
+        <label asp-for="Email" class="control-label">Email</label>
+        <input asp-for="Email" class="form-control" readonly id="Email" />
         <span asp-validation-for="Email" class="text-danger"></span>
     </div>
 
     <div class="form-group">
         <label asp-for="TechnicianGroupId" class="control-label">Technician Group</label>
         <select asp-for="TechnicianGroupId" class="form-control" asp-items="ViewBag.TechnicianGroups">
-            <option value="">-- Select Group --</option>
+            <option value="">Select Technician Group</option>
         </select>
         <span asp-validation-for="TechnicianGroupId" class="text-danger"></span>
     </div>
 
     <div class="form-group">
-        <input type="submit" value="Create" class="btn btn-primary" />
+        <input type="submit" value="Create Technician" class="btn btn-primary" />
     </div>
 </form>
 
@@ -40,5 +50,28 @@
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+    <script>
+        // Access the users list in JavaScript
+        const users = @Html.Raw(ViewBag.UsersJson);
+
+        // Function to populate FullName and Email based on the selected UserId
+        function populateUserDetails(select) {
+            const userId = select.value;
+            const selectedUser = users.find(u => u.Id === userId);
+
+            document.getElementById("FullName").value = selectedUser ? selectedUser.FullName : '';
+            document.getElementById("Email").value = selectedUser ? selectedUser.Email : '';
+        }
+
+        // Call populateUserDetails when the page loads if a user is selected
+        window.onload = function () {
+            const select = document.querySelector("select[name='UserId']");
+            if (select && select.value) {
+                populateUserDetails(select);
+            }
+        };
+    </script>
+
+    
 }

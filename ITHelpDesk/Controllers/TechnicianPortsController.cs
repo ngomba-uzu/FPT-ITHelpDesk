@@ -10,23 +10,23 @@ using ITHelpDesk.Models;
 
 namespace ITHelpDesk.Controllers
 {
-    public class UserPortsController : Controller
+    public class TechnicianPortsController : Controller
     {
         private readonly ApplicationDbContext _context;
 
-        public UserPortsController(ApplicationDbContext context)
+        public TechnicianPortsController(ApplicationDbContext context)
         {
             _context = context;
         }
 
-        // GET: UserPorts
+        // GET: TechnicianPorts
         public async Task<IActionResult> Index()
         {
-            var applicationDbContext = _context.UserPorts.Include(u => u.Port).Include(u => u.User);
+            var applicationDbContext = _context.TechnicianPorts.Include(t => t.Port).Include(t => t.Technician);
             return View(await applicationDbContext.ToListAsync());
         }
 
-        // GET: UserPorts/Details/5
+        // GET: TechnicianPorts/Details/5
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -34,45 +34,45 @@ namespace ITHelpDesk.Controllers
                 return NotFound();
             }
 
-            var userPorts = await _context.UserPorts
-                .Include(u => u.Port)
-                .Include(u => u.User)
+            var technicianPort = await _context.TechnicianPorts
+                .Include(t => t.Port)
+                .Include(t => t.Technician)
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (userPorts == null)
+            if (technicianPort == null)
             {
                 return NotFound();
             }
 
-            return View(userPorts);
+            return View(technicianPort);
         }
 
-        // GET: UserPorts/Create
+        // GET: TechnicianPorts/Create
         public IActionResult Create()
         {
             ViewData["PortId"] = new SelectList(_context.Ports, "Id", "PortName");
-            ViewData["UserId"] = new SelectList(_context.ApplicationUsers, "Id", "FullName");
+            ViewData["TechnicianId"] = new SelectList(_context.Technicians, "Id", "FullName");
             return View();
         }
 
-        // POST: UserPorts/Create
+        // POST: TechnicianPorts/Create
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,UserId,PortId")] UserPorts userPorts)
+        public async Task<IActionResult> Create([Bind("Id,TechnicianId,PortId")] TechnicianPort technicianPort)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(userPorts);
+                _context.Add(technicianPort);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["PortId"] = new SelectList(_context.Ports, "Id", "PortName", userPorts.PortId);
-            ViewData["UserId"] = new SelectList(_context.ApplicationUsers, "Id", "FullName", userPorts.UserId);
-            return View(userPorts);
+            ViewData["PortId"] = new SelectList(_context.Ports, "Id", "PortName", technicianPort.PortId);
+            ViewData["TechnicianId"] = new SelectList(_context.Technicians, "Id", "FullName", technicianPort.TechnicianId);
+            return View(technicianPort);
         }
 
-        // GET: UserPorts/Edit/5
+        // GET: TechnicianPorts/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -80,24 +80,24 @@ namespace ITHelpDesk.Controllers
                 return NotFound();
             }
 
-            var userPorts = await _context.UserPorts.FindAsync(id);
-            if (userPorts == null)
+            var technicianPort = await _context.TechnicianPorts.FindAsync(id);
+            if (technicianPort == null)
             {
                 return NotFound();
             }
-            ViewData["PortId"] = new SelectList(_context.Ports, "Id", "PortName", userPorts.PortId);
-            ViewData["UserId"] = new SelectList(_context.ApplicationUsers, "Id", "FullName", userPorts.UserId);
-            return View(userPorts);
+            ViewData["PortId"] = new SelectList(_context.Ports, "Id", "PortName", technicianPort.PortId);
+            ViewData["TechnicianId"] = new SelectList(_context.Technicians, "Id", "FullName", technicianPort.TechnicianId);
+            return View(technicianPort);
         }
 
-        // POST: UserPorts/Edit/5
+        // POST: TechnicianPorts/Edit/5
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,UserId,PortId")] UserPorts userPorts)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,TechnicianId,PortId")] TechnicianPort technicianPort)
         {
-            if (id != userPorts.Id)
+            if (id != technicianPort.Id)
             {
                 return NotFound();
             }
@@ -106,12 +106,12 @@ namespace ITHelpDesk.Controllers
             {
                 try
                 {
-                    _context.Update(userPorts);
+                    _context.Update(technicianPort);
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!UserPortsExists(userPorts.Id))
+                    if (!TechnicianPortExists(technicianPort.Id))
                     {
                         return NotFound();
                     }
@@ -122,12 +122,12 @@ namespace ITHelpDesk.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["PortId"] = new SelectList(_context.Ports, "Id", "PortName", userPorts.PortId);
-            ViewData["UserId"] = new SelectList(_context.ApplicationUsers, "Id", "FullName", userPorts.UserId);
-            return View(userPorts);
+            ViewData["PortId"] = new SelectList(_context.Ports, "Id", "PortName", technicianPort.PortId);
+            ViewData["TechnicianId"] = new SelectList(_context.Technicians, "Id", "FullName", technicianPort.TechnicianId);
+            return View(technicianPort);
         }
 
-        // GET: UserPorts/Delete/5
+        // GET: TechnicianPorts/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -135,36 +135,36 @@ namespace ITHelpDesk.Controllers
                 return NotFound();
             }
 
-            var userPorts = await _context.UserPorts
-                .Include(u => u.Port)
-                .Include(u => u.User)
+            var technicianPort = await _context.TechnicianPorts
+                .Include(t => t.Port)
+                .Include(t => t.Technician)
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (userPorts == null)
+            if (technicianPort == null)
             {
                 return NotFound();
             }
 
-            return View(userPorts);
+            return View(technicianPort);
         }
 
-        // POST: UserPorts/Delete/5
+        // POST: TechnicianPorts/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var userPorts = await _context.UserPorts.FindAsync(id);
-            if (userPorts != null)
+            var technicianPort = await _context.TechnicianPorts.FindAsync(id);
+            if (technicianPort != null)
             {
-                _context.UserPorts.Remove(userPorts);
+                _context.TechnicianPorts.Remove(technicianPort);
             }
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
-        private bool UserPortsExists(int id)
+        private bool TechnicianPortExists(int id)
         {
-            return _context.UserPorts.Any(e => e.Id == id);
+            return _context.TechnicianPorts.Any(e => e.Id == id);
         }
     }
 }

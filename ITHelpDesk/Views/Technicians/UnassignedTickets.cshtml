@@ -1,64 +1,158 @@
 ﻿@model IEnumerable<Ticket>
 
 @{
+    Layout = "_Layout";
     ViewData["Title"] = "Unassigned Tickets";
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
 }
 
-<h2>Unassigned Tickets</h2>
-<div class="btn-group mb-3" role="group">
-    <a asp-action="UnassignedTickets" class="btn @(currentAction == "UnassignedTickets" ? "btn-warning" : "btn-outline-warning")">Unassigned</a>
-    <a asp-action="MyTickets" class="btn @(currentAction == "MyTickets" ? "btn-primary" : "btn-outline-primary")">Assigned</a>
-    <a asp-action="ClosedTickets" class="btn @(currentAction == "ClosedTickets" ? "btn-success" : "btn-outline-success")">Closed</a>
-    
-   
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Unassigned Tickets</h2>
+        <div class="btn-group" role="group">
+            <a asp-action="UnassignedTickets" class="btn @(currentAction == "UnassignedTickets" ? "btn-warning" : "btn-outline-warning")">
+                <i class="fas fa-question-circle me-1"></i> Unassigned
+            </a>
+            <a asp-action="MyTickets" class="btn @(currentAction == "MyTickets" ? "btn-primary" : "btn-outline-primary")">
+                <i class="fas fa-tasks me-1"></i> Assigned
+            </a>
+            <a asp-action="ClosedTickets" class="btn @(currentAction == "ClosedTickets" ? "btn-success" : "btn-outline-success")">
+                <i class="fas fa-check-circle me-1"></i> Closed
+            </a>
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i> No unassigned tickets found for your category group.
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Ticket #</th>
+                                <th>Requester</th>
+                                <th>Department</th>
+                                <th>Subcategory</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var ticket in Model)
+                            {
+                                <tr class="@GetPriorityRowClass(ticket.Priority?.PriorityName)">
+                                    <td class="fw-bold">@ticket.TicketNumber</td>
+                                    <td>
+                                        <div class="d-flex flex-column">
+                                            <span>@ticket.RequesterName</span>
+                                            <small class="text-muted">@ticket.Email</small>
+                                        </div>
+                                    </td>
+                                    <td>@ticket.Department?.DepartmentName</td>
+                                    <td>
+                                        <span class="badge bg-secondary">@ticket.Subcategory?.SubcategoryName</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge @GetPriorityBadgeClass(ticket.Priority?.PriorityName)">
+                                            @ticket.Priority?.PriorityName
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge @GetStatusBadgeClass(ticket.Status?.StatusName)">
+                                            @ticket.Status?.StatusName
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">@ticket.CreatedAt.ToString("MMM dd, yyyy")</small>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="d-flex justify-content-end gap-2">
+                                            <form asp-action="AssignToMe" asp-controller="Technicians" method="post">
+                                                <input type="hidden" name="id" value="@ticket.Id" />
+                                                <button type="submit" class="btn btn-sm btn-success">
+                                                    <i class="fas fa-user-plus me-1"></i> Assign to Me
+                                                </button>
+                                            </form>
+                                            
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
-@if (!Model.Any())
-{
-    <p>No unassigned tickets found for your category group.</p>
+@functions {
+    string GetPriorityRowClass(string priorityName)
+    {
+        switch (priorityName?.ToLower())
+        {
+            case "high":
+                return "table-danger";
+            case "medium":
+                return "table-warning";
+            case "low":
+                return "table-info";
+            default:
+                return "";
+        }
+    }
+
+    string GetPriorityBadgeClass(string priorityName)
+    {
+        switch (priorityName?.ToLower())
+        {
+            case "high":
+                return "bg-danger";
+            case "medium":
+                return "bg-warning";
+            case "low":
+                return "bg-info";
+            default:
+                return "bg-secondary";
+        }
+    }
+
+    string GetStatusBadgeClass(string statusName)
+    {
+        switch (statusName?.ToLower())
+        {
+            case "open":
+                return "bg-primary";
+            case "in progress":
+                return "bg-info";
+            case "resolved":
+                return "bg-success";
+            case "closed":
+                return "bg-secondary";
+            case "pending":
+                return "bg-warning";
+            default:
+                return "bg-light text-dark";
+        }
+    }
 }
-else
-{
-    <table class="table table-bordered table-striped">
-        <thead>
-            <tr>
-                <th>TicketNumber</th>
-                <th>Requester</th>
-                <th>Email</th>
-                <th>Department</th>
-                <th>Subcategory</th>
-                <th>Priority</th>
-                <th>Status</th>
-                <th>Port</th>
-                <th>Description</th>
-                <th>Created At</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var ticket in Model)
-            {
-                <tr>
-                    <td>@ticket.TicketNumber</td>
-                    <td>@ticket.RequesterName</td>
-                    <td>@ticket.Email</td>
-                    <td>@ticket.Department?.DepartmentName</td>
-                    <td>@ticket.Subcategory?.SubcategoryName</td>
-                    <td>@ticket.Priority?.PriorityName</td>
-                    <td>@ticket.Status?.StatusName</td>
-                    <td>@ticket.Port?.PortName</td>
-                    <td>@ticket.Description</td>
-                    <td>@ticket.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
-                    <td>
-                        <form asp-action="AssignToMe" asp-controller="Technicians" method="post">
-                            <input type="hidden" name="id" value="@ticket.Id" />
-                            <button type="submit" class="btn btn-sm btn-success">Assign to Me</button>
-                        </form>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+
+@section Styles {
+    <style>
+        .table-hover tbody tr:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+        }
+    </style>
 }
 

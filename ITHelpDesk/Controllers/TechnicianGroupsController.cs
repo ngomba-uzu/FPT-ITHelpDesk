@@ -22,8 +22,14 @@ namespace ITHelpDesk.Controllers
         // GET: TechnicianGroups
         public async Task<IActionResult> Index()
         {
-            return View(await _context.TechnicianGroups.ToListAsync());
+            var groups = await _context.TechnicianGroups
+                .Include(g => g.Technicians)
+                  
+                .ToListAsync();
+
+            return View(groups);
         }
+
 
         // GET: TechnicianGroups/Details/5
         public async Task<IActionResult> Details(int? id)
@@ -34,7 +40,9 @@ namespace ITHelpDesk.Controllers
             }
 
             var technicianGroup = await _context.TechnicianGroups
+                .Include(g => g.Technicians) // 👈 Include related technicians
                 .FirstOrDefaultAsync(m => m.Id == id);
+
             if (technicianGroup == null)
             {
                 return NotFound();
@@ -52,7 +60,8 @@ namespace ITHelpDesk.Controllers
                 SelectedTechnicianIds = new List<int>()
             };
 
-            ViewBag.AllTechnicians = _context.Technicians.ToList();
+            ViewBag.TechnicianList = new MultiSelectList(_context.Technicians, "Id", "FullName");
+
             return View(technicianGroup);
         }
 
@@ -93,11 +102,21 @@ namespace ITHelpDesk.Controllers
                 return NotFound();
             }
 
-            var technicianGroup = await _context.TechnicianGroups.FindAsync(id);
+            var technicianGroup = await _context.TechnicianGroups
+      .Include(g => g.Technicians)
+      .FirstOrDefaultAsync(g => g.Id == id);
+
             if (technicianGroup == null)
             {
                 return NotFound();
             }
+
+            // Populate SelectedTechnicianIds for the view
+            technicianGroup.SelectedTechnicianIds = technicianGroup.Technicians.Select(t => t.Id).ToList();
+
+            // Send all available technicians to the view
+            ViewBag.AllTechnicians = _context.Technicians.ToList();
+
             return View(technicianGroup);
         }
 
@@ -106,7 +125,7 @@ namespace ITHelpDesk.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,GroupName")] TechnicianGroup technicianGroup)
+        public async Task<IActionResult> Edit(int id, TechnicianGroup technicianGroup)
         {
             if (id != technicianGroup.Id)
             {
@@ -117,7 +136,32 @@ namespace ITHelpDesk.Controllers
             {
                 try
                 {
-                    _context.Update(technicianGroup);
+                    var groupToUpdate = await _context.TechnicianGroups
+                        .Include(g => g.Technicians)
+                        .FirstOrDefaultAsync(g => g.Id == id);
+
+                    if (groupToUpdate == null)
+                    {
+                        return NotFound();
+                    }
+
+                    // Update the group name
+                    groupToUpdate.GroupName = technicianGroup.GroupName;
+
+                    // Update technicians
+                    groupToUpdate.Technicians.Clear();
+                    if (technicianGroup.SelectedTechnicianIds != null && technicianGroup.SelectedTechnicianIds.Any())
+                    {
+                        var selectedTechnicians = await _context.Technicians
+                            .Where(t => technicianGroup.SelectedTechnicianIds.Contains(t.Id))
+                            .ToListAsync();
+
+                        foreach (var tech in selectedTechnicians)
+                        {
+                            groupToUpdate.Technicians.Add(tech);
+                        }
+                    }
+
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
@@ -131,10 +175,14 @@ namespace ITHelpDesk.Controllers
                         throw;
                     }
                 }
+
                 return RedirectToAction(nameof(Index));
             }
+
+            ViewBag.TechnicianList = new MultiSelectList(_context.Technicians, "Id", "FullName", technicianGroup.SelectedTechnicianIds);
             return View(technicianGroup);
         }
+
 
         // GET: TechnicianGroups/Delete/5
         public async Task<IActionResult> Delete(int? id)
@@ -145,7 +193,9 @@ namespace ITHelpDesk.Controllers
             }
 
             var technicianGroup = await _context.TechnicianGroups
+                .Include(g => g.Technicians)
                 .FirstOrDefaultAsync(m => m.Id == id);
+
             if (technicianGroup == null)
             {
                 return NotFound();
@@ -154,20 +204,28 @@ namespace ITHelpDesk.Controllers
             return View(technicianGroup);
         }
 
+
         // POST: TechnicianGroups/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var technicianGroup = await _context.TechnicianGroups.FindAsync(id);
+            var technicianGroup = await _context.TechnicianGroups
+                .Include(g => g.Technicians) // 👈 Include the technicians
+                .FirstOrDefaultAsync(g => g.Id == id);
+
             if (technicianGroup != null)
             {
+                // 👇 Clear technician assignments to avoid foreign key issues
+                technicianGroup.Technicians.Clear();
+
                 _context.TechnicianGroups.Remove(technicianGroup);
+                await _context.SaveChangesAsync();
             }
 
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
+
 
         private bool TechnicianGroupExists(int id)
         {

@@ -14,7 +14,7 @@ namespace ITHelpDesk.Data
         public DbSet<ApplicationUser> ApplicationUsers { get; set; }
         public DbSet<Department> Departments { get; set; }
         public DbSet<Port> Ports { get; set; }
-        public DbSet<UserPorts> UserPorts { get; set; }
+        public DbSet<TechnicianPort> TechnicianPorts { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Subcategory> Subcategories { get; set; }
         public DbSet<Priority> Priorities { get; set; }
@@ -23,6 +23,8 @@ namespace ITHelpDesk.Data
         public DbSet<Status> Status { get; set; }
         public DbSet<TechnicianGroup> TechnicianGroups { get; set; }
         public DbSet<SeniorTechnician> SeniorTechnicians { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -35,18 +37,6 @@ namespace ITHelpDesk.Data
                 .WithMany()
                 .HasForeignKey(a => a.PortId)
                 .OnDelete(DeleteBehavior.Restrict);  // Avoid cascade delete issues
-
-            modelBuilder.Entity<UserPorts>()
-                .HasOne(up => up.User)
-                .WithMany()
-                .HasForeignKey(up => up.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<UserPorts>()
-                .HasOne(up => up.Port)
-                .WithMany()
-                .HasForeignKey(up => up.PortId)
-                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Ticket>()
                 .HasOne(t => t.Category)

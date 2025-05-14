@@ -58,6 +58,44 @@ namespace ITHelpDesk.Data.Migrations
                     b.ToTable("Departments");
                 });
 
+            modelBuilder.Entity("ITHelpDesk.Models.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("TechnicianGroupId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TicketId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TechnicianGroupId");
+
+                    b.HasIndex("TicketId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
+                });
+
             modelBuilder.Entity("ITHelpDesk.Models.Port", b =>
                 {
                     b.Property<int>("Id")
@@ -211,6 +249,29 @@ namespace ITHelpDesk.Data.Migrations
                     b.ToTable("TechnicianGroups");
                 });
 
+            modelBuilder.Entity("ITHelpDesk.Models.TechnicianPort", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("PortId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TechnicianId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PortId");
+
+                    b.HasIndex("TechnicianId");
+
+                    b.ToTable("TechnicianPorts");
+                });
+
             modelBuilder.Entity("ITHelpDesk.Models.Ticket", b =>
                 {
                     b.Property<int>("Id")
@@ -322,35 +383,6 @@ namespace ITHelpDesk.Data.Migrations
                     b.HasIndex("TechnicianGroupId");
 
                     b.ToTable("Tickets");
-                });
-
-            modelBuilder.Entity("ITHelpDesk.Models.UserPorts", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ApplicationUserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<int>("PortId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ApplicationUserId");
-
-                    b.HasIndex("PortId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("UserPorts");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -593,11 +625,35 @@ namespace ITHelpDesk.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("TechnicianGroupId")
+                        .HasColumnType("int");
+
                     b.HasIndex("DepartmentId");
 
                     b.HasIndex("PortId");
 
                     b.HasDiscriminator().HasValue("ApplicationUser");
+                });
+
+            modelBuilder.Entity("ITHelpDesk.Models.Notification", b =>
+                {
+                    b.HasOne("ITHelpDesk.Models.TechnicianGroup", "TechnicianGroup")
+                        .WithMany()
+                        .HasForeignKey("TechnicianGroupId");
+
+                    b.HasOne("ITHelpDesk.Models.Ticket", "Ticket")
+                        .WithMany()
+                        .HasForeignKey("TicketId");
+
+                    b.HasOne("ITHelpDesk.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId");
+
+                    b.Navigation("TechnicianGroup");
+
+                    b.Navigation("Ticket");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ITHelpDesk.Models.Subcategory", b =>
@@ -636,6 +692,25 @@ namespace ITHelpDesk.Data.Migrations
                     b.Navigation("TechnicianGroup");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ITHelpDesk.Models.TechnicianPort", b =>
+                {
+                    b.HasOne("ITHelpDesk.Models.Port", "Port")
+                        .WithMany("TechnicianPorts")
+                        .HasForeignKey("PortId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ITHelpDesk.Models.Technician", "Technician")
+                        .WithMany("TechnicianPorts")
+                        .HasForeignKey("TechnicianId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Port");
+
+                    b.Navigation("Technician");
                 });
 
             modelBuilder.Entity("ITHelpDesk.Models.Ticket", b =>
@@ -715,29 +790,6 @@ namespace ITHelpDesk.Data.Migrations
                     b.Navigation("TechnicianGroup");
                 });
 
-            modelBuilder.Entity("ITHelpDesk.Models.UserPorts", b =>
-                {
-                    b.HasOne("ITHelpDesk.Models.ApplicationUser", null)
-                        .WithMany("UserPorts")
-                        .HasForeignKey("ApplicationUserId");
-
-                    b.HasOne("ITHelpDesk.Models.Port", "Port")
-                        .WithMany()
-                        .HasForeignKey("PortId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ITHelpDesk.Models.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Port");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -813,14 +865,19 @@ namespace ITHelpDesk.Data.Migrations
                     b.Navigation("Subcategories");
                 });
 
+            modelBuilder.Entity("ITHelpDesk.Models.Port", b =>
+                {
+                    b.Navigation("TechnicianPorts");
+                });
+
+            modelBuilder.Entity("ITHelpDesk.Models.Technician", b =>
+                {
+                    b.Navigation("TechnicianPorts");
+                });
+
             modelBuilder.Entity("ITHelpDesk.Models.TechnicianGroup", b =>
                 {
                     b.Navigation("Technicians");
-                });
-
-            modelBuilder.Entity("ITHelpDesk.Models.ApplicationUser", b =>
-                {
-                    b.Navigation("UserPorts");
                 });
 #pragma warning restore 612, 618
         }

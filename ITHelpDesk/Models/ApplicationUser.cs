@@ -34,7 +34,8 @@ namespace ITHelpDesk.Models
         public string FullName { get; set; } = string.Empty;
 
         public string Status { get; set; }
-        public ICollection<UserPorts> UserPorts { get; set; }
+        public int TechnicianGroupId { get; set; }
 
+       
     }
 }

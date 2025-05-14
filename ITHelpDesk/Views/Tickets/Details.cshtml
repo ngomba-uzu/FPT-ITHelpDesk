@@ -1,5 +1,6 @@
 ﻿@model ITHelpDesk.Models.Ticket
 @{
+    Layout = "_Layout";
     ViewData["Title"] = "Ticket Details";
 }
 
@@ -128,7 +129,8 @@
 
         <div class="btn-group-custom">
            @*  <a class="btn btn-primary btn-custom" asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> *@
-            <a class="btn btn-outline-secondary ms-2 btn-custom" asp-action="Index">Back to List</a>
+            <a class="btn btn-outline-secondary ms-2 btn-custom" asp-controller="Technicians" asp-action="MyTickets">Back to List</a>
+
         </div>
     </div>
 </div>

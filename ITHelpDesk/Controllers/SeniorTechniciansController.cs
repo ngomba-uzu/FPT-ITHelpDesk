@@ -7,16 +7,22 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using ITHelpDesk.Data;
 using ITHelpDesk.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 
 namespace ITHelpDesk.Controllers
 {
     public class SeniorTechniciansController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IEmailSender _emailSender;
+        private readonly ILogger<SeniorTechniciansController> _logger;
 
-        public SeniorTechniciansController(ApplicationDbContext context)
+        public SeniorTechniciansController(ApplicationDbContext context, IEmailSender emailSender, ILogger<SeniorTechniciansController> logger)
         {
             _context = context;
+            _emailSender = emailSender;
+            _logger = logger;
         }
 
         // GET: SeniorTechnicians
@@ -157,6 +163,7 @@ namespace ITHelpDesk.Controllers
         public async Task<IActionResult> ReviewEscalatedTicket(int id)
         {
             var ticket = await _context.Tickets
+                .Include(t => t.Status)
                 .Include(t => t.Department)
                 .Include(t => t.Priority)
                 .Include(t => t.Category)
@@ -171,15 +178,46 @@ namespace ITHelpDesk.Controllers
         [HttpPost]
         public async Task<IActionResult> SubmitSeniorResponse(int TicketId, string Response)
         {
-            var ticket = await _context.Tickets.FindAsync(TicketId);
-            if (ticket == null) return NotFound();
+            var ticket = await _context.Tickets
+                .Include(t => t.AssignedTechnician) // 👈 include technician for email access
+                .FirstOrDefaultAsync(t => t.Id == TicketId);
+
+            if (ticket == null)
+                return NotFound();
 
             ticket.SeniorTechnicianResponse = Response;
+
             _context.Update(ticket);
             await _context.SaveChangesAsync();
 
-            return Content("Response submitted successfully. The technician will now handle it.");
-        }
+            // ✅ Send email to the assigned technician
+            if (ticket.AssignedTechnician != null && !string.IsNullOrWhiteSpace(ticket.AssignedTechnician.Email))
+            {
+                var emailBody = $@"
+            <p>Dear {ticket.AssignedTechnician.FullName},</p>
+            <p>The senior technician has responded to the escalated ticket.</p>
+            <p>You can now proceed to the Resolution section to review the response and continue resolving the ticket.</p>
+            <p><strong>Ticket Number:</strong> {ticket.TicketNumber}</p>
+            <p>Regards,<br/>HelpDesk System</p>";
 
+                try
+                {
+                    await _emailSender.SendEmailAsync(
+                        ticket.AssignedTechnician.Email.Trim(),
+                        "Senior Technician Response Submitted",
+                        emailBody
+                    );
+
+                    _logger.LogInformation("Email sent to technician {Email}", ticket.AssignedTechnician.Email);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send email to technician {Email}", ticket.AssignedTechnician.Email);
+                    TempData["Error"] = "Response submitted, but email notification failed.";
+                }
+            }
+
+            return Content("Response submitted successfully. The technician has been notified.");
+        }
     }
 }

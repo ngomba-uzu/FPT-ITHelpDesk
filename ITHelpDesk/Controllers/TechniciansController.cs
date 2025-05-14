@@ -8,11 +8,12 @@ using Microsoft.EntityFrameworkCore;
 using ITHelpDesk.Data;
 using ITHelpDesk.Models;
 using Microsoft.AspNetCore.Identity;
-/*using ITHelpDesk.Models.ViewModels;*/
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using ITHelpDesk.Models.ViewModels;
 using ITHelpDesk.Services;
+using Microsoft.AspNetCore.Authorization;
+using Newtonsoft.Json;
 
 namespace ITHelpDesk.Controllers
 {
@@ -24,8 +25,9 @@ namespace ITHelpDesk.Controllers
         private readonly IEmailSender _emailSender;
         private readonly IWebHostEnvironment _env;
         private readonly ILogger<TechniciansController> _logger;
+        private readonly NotificationService _notificationService;
 
-        public TechniciansController(ApplicationDbContext context, UserManager<IdentityUser> userManager, IWebHostEnvironment webHostEnvironment, IEmailSender emailSender, IWebHostEnvironment env, ILogger<TechniciansController> logger)
+        public TechniciansController(ApplicationDbContext context, UserManager<IdentityUser> userManager, IWebHostEnvironment webHostEnvironment, IEmailSender emailSender, IWebHostEnvironment env, ILogger<TechniciansController> logger, NotificationService notificationService)
         {
             _context = context;
             _userManager = userManager;
@@ -33,14 +35,18 @@ namespace ITHelpDesk.Controllers
             _emailSender = emailSender;
             _env = env;
             _logger = logger;
+            _notificationService = notificationService;
         }
 
         // GET: Technicians
         public async Task<IActionResult> Index()
         {
             var technicians = await _context.Technicians
-                                    .Include(t => t.TechnicianGroup) // Include the group
-                                    .ToListAsync();
+                .Include(t => t.TechnicianGroup)
+                .Include(t => t.TechnicianPorts)
+                    .ThenInclude(tp => tp.Port)
+                .Include(t => t.User)
+                .ToListAsync();
 
             return View(technicians);
         }
@@ -69,30 +75,80 @@ namespace ITHelpDesk.Controllers
         // GET: Technicians/Create
         public IActionResult Create()
         {
-            ViewBag.TechnicianGroups = new SelectList(_context.TechnicianGroups.ToList(), "Id", "GroupName");
+            // Initialize a list to hold the user data
+            var users = new List<dynamic>();
+
+            // Loop through the users in the context
+            foreach (var user in _context.Users)
+            {
+                var appUser = user as ApplicationUser;  // Cast to ApplicationUser
+
+                // If the cast is successful, add the user data to the list
+                if (appUser != null)
+                {
+                    users.Add(new { appUser.Id, appUser.FullName, appUser.Email });
+                }
+            }
+
+            // ViewBag for the dropdown list, ensuring it's of the correct type
+            ViewBag.Users = users.Select(u => new SelectListItem
+            {
+                Value = u.Id.ToString(),  // `Value` should be a string
+                Text = u.FullName         // `Text` should display FullName
+            }).ToList();
+
+            // ViewBag for TechnicianGroups and Ports
+            ViewBag.TechnicianGroups = new SelectList(_context.TechnicianGroups, "Id", "GroupName");
+            ViewBag.Ports = new SelectList(_context.Ports, "Id", "PortName");
+
+            // ViewBag for serialized JSON users data for use in JavaScript
+            ViewBag.UsersJson = JsonConvert.SerializeObject(users);
+
+            // Return the view
             return View();
         }
+
+
+
 
         // POST: Technicians/Create
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Technician technician)
+        public async Task<IActionResult> Create(Technician technician, List<int> selectedPorts)
         {
             if (ModelState.IsValid)
             {
-                // Assign the logged-in user's ID to the UserId field
-                technician.UserId = _userManager.GetUserId(User);
+                technician.TechnicianPorts = selectedPorts.Select(portId => new TechnicianPort
+                {
+                    PortId = portId,
+                    TechnicianId = technician.Id
+                }).ToList();
 
                 _context.Add(technician);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
 
-            ViewBag.TechnicianGroups = new SelectList(_context.TechnicianGroups.ToList(), "Id", "GroupName", technician.TechnicianGroupId);
+            // Safely cast to ApplicationUser to access FullName
+            var users = new List<dynamic>();
+            foreach (var user in _context.Users)
+            {
+                var appUser = user as ApplicationUser;
+                if (appUser != null)
+                {
+                    users.Add(new { appUser.Id, appUser.FullName, appUser.Email });
+                }
+            }
+
+            ViewBag.Users = users;
+            ViewBag.TechnicianGroups = new SelectList(_context.TechnicianGroups, "Id", "GroupName", technician.TechnicianGroupId);
+            ViewBag.Ports = new SelectList(_context.Ports, "Id", "PortName");
             return View(technician);
         }
+
+
 
         // GET: Technicians/Edit/5
         public async Task<IActionResult> Edit(int? id)
@@ -102,20 +158,33 @@ namespace ITHelpDesk.Controllers
                 return NotFound();
             }
 
-            var technician = await _context.Technicians.FindAsync(id);
+            var technician = await _context.Technicians
+                .Include(t => t.TechnicianPorts)
+                .FirstOrDefaultAsync(t => t.Id == id);
+
             if (technician == null)
             {
                 return NotFound();
             }
+
+            // Get selected port IDs from TechnicianPorts
+            var selectedPortIds = technician.TechnicianPorts.Select(tp => tp.PortId).ToList();
+
+            ViewBag.TechnicianGroups = new SelectList(_context.TechnicianGroups.ToList(), "Id", "GroupName", technician.TechnicianGroupId);
+            ViewBag.Ports = new MultiSelectList(_context.Ports.ToList(), "Id", "PortName", selectedPortIds);
+
+
             return View(technician);
         }
+
+
 
         // POST: Technicians/Edit/5
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,FullName,Email")] Technician technician)
+        public async Task<IActionResult> Edit(int id, Technician technician, List<int> selectedPorts)
         {
             if (id != technician.Id)
             {
@@ -126,24 +195,54 @@ namespace ITHelpDesk.Controllers
             {
                 try
                 {
-                    _context.Update(technician);
+                    var existingTechnician = await _context.Technicians
+                        .Include(t => t.TechnicianPorts)
+                        .FirstOrDefaultAsync(t => t.Id == id);
+
+                    if (existingTechnician == null)
+                        return NotFound();
+
+                    // Update main fields
+                    existingTechnician.FullName = technician.FullName;
+                    existingTechnician.Email = technician.Email;
+                    existingTechnician.TechnicianGroupId = technician.TechnicianGroupId;
+
+                    // Remove old port links
+                    _context.TechnicianPorts.RemoveRange(existingTechnician.TechnicianPorts);
+
+                    // Add updated port links
+                    if (selectedPorts != null && selectedPorts.Any())
+                    {
+                        foreach (var portId in selectedPorts)
+                        {
+                            _context.TechnicianPorts.Add(new TechnicianPort
+                            {
+                                TechnicianId = existingTechnician.Id,
+                                PortId = portId
+                            });
+                        }
+                    }
+
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
                     if (!TechnicianExists(technician.Id))
-                    {
                         return NotFound();
-                    }
                     else
-                    {
                         throw;
-                    }
                 }
+
                 return RedirectToAction(nameof(Index));
             }
+
+            // Rebind dropdowns if model state is invalid
+            ViewBag.TechnicianGroups = new SelectList(_context.TechnicianGroups.ToList(), "Id", "GroupName", technician.TechnicianGroupId);
+            ViewBag.Ports = new MultiSelectList(_context.Ports.ToList(), "Id", "PortName", selectedPorts);
+
             return View(technician);
         }
+
 
         // GET: Technicians/Delete/5
         public async Task<IActionResult> Delete(int? id)
@@ -183,27 +282,35 @@ namespace ITHelpDesk.Controllers
             return _context.Technicians.Any(e => e.Id == id);
         }
 
+       
         public async Task<IActionResult> MyTickets()
         {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            // Get technician by UserId instead of email
             var technician = await _context.Technicians
-                .FirstOrDefaultAsync(t => t.Email == User.Identity.Name);
+                .FirstOrDefaultAsync(t => t.UserId == user.Id);
 
             if (technician == null)
             {
-                return Unauthorized(); // or redirect with error message
+                return Unauthorized();
             }
 
+            // Rest of your existing code
             var tickets = await _context.Tickets
-                .Include(t => t.Category)
-                .Include(t => t.Subcategory)
-                .Include(t => t.Port)
-                .Include(t => t.Department)
-                .Include(t => t.Priority)
-                .Include(t => t.Status)
-                .Include(t => t.AssignedTechnician)
-                .Where(t => t.AssignedTechnicianId == technician.Id && t.Status.StatusName == "Assigned")
-                .ToListAsync();
+         .Include(t => t.Category)
+         .Include(t => t.Subcategory)
+         .Include(t => t.Priority)
+         .Include(t => t.Status)
+         .Include(t => t.AssignedTechnician)
+         .Where(t => t.AssignedTechnicianId == technician.Id && t.Status.StatusName == "Assigned")
+         .ToListAsync();
 
+            ViewBag.Priorities = await _context.Priorities.ToListAsync();
             ViewBag.Technicians = await _context.Technicians.ToListAsync();
 
             return View(tickets);
@@ -279,9 +386,20 @@ namespace ITHelpDesk.Controllers
 
             await _context.SaveChangesAsync();
 
+            // 📧 Send email to requester
+            var subject = $"Ticket {ticket.TicketNumber} Assigned to Technician";
+            var message = $@"
+<p>Dear {ticket.RequesterName},</p>
+<p>Your ticket <strong>{ticket.TicketNumber}</strong> has been assigned to <strong>{technician.FullName}</strong> and is now under resolution.</p>
+<p>You will be notified once the issue has been resolved.</p>
+<p>Regards,<br/>IT HelpDesk</p>";
+
+            await _emailSender.SendEmailAsync(ticket.Email, subject, message);
+
             // Redirect to the assigned tickets view for the technician
             return RedirectToAction("MyTickets", "Technicians");
         }
+
 
         // GET: Technicians/Resolution/5
         public async Task<IActionResult> Resolution(int id)
@@ -354,6 +472,16 @@ namespace ITHelpDesk.Controllers
                 ticket.StatusId = closedStatus.Id;
                 ticket.ClosedDate = DateTime.Now;
                 ticket.IsResolutionAcknowledged = false;
+
+                // ✅ Get and assign technician
+                var technician = await _context.Technicians
+                    .FirstOrDefaultAsync(t => t.Email == User.Identity.Name);
+                if (technician == null)
+                {
+                    return Unauthorized();
+                }
+                ticket.ClosedByTechnicianId = technician.Id;
+
 
                 _context.Update(ticket);
                 await _context.SaveChangesAsync();
@@ -439,11 +567,22 @@ namespace ITHelpDesk.Controllers
             var closedTickets = await _context.Tickets
                 .Include(t => t.Status)
                 .Include(t => t.AssignedTechnician)
-                .Where(t => closedStatusIds.Contains(t.StatusId) && t.ClosedByTechnicianId == technician.Id)
+                .Where(t => closedStatusIds.Contains(t.StatusId) && t.AssignedTechnicianId == technician.Id)
                 .ToListAsync();
+
+            foreach (var ticket in closedTickets)
+            {
+                await _notificationService.CreateUserNotification(
+                    ticket.CreatedBy,
+                    $"Your ticket #{ticket.TicketNumber} has been closed",
+                    ticket.Id
+                );
+            }
 
             return View(closedTickets);
         }
+
+
 
 
         [HttpPost]
@@ -481,14 +620,42 @@ namespace ITHelpDesk.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ReassignTicket(int TicketId, int TechnicianId, string ReassignReason)
         {
-            var ticket = await _context.Tickets.FindAsync(TicketId);
+            var ticket = await _context.Tickets
+                .Include(t => t.AssignedTechnician)
+                .FirstOrDefaultAsync(t => t.Id == TicketId);
             if (ticket == null) return NotFound();
 
+            // Get the current (reassigning) technician
+            var currentTechnician = await _context.Technicians
+                .FirstOrDefaultAsync(t => t.Email == User.Identity.Name);
+            if (currentTechnician == null) return Unauthorized();
+
+            // Get the new assigned technician
+            var newTechnician = await _context.Technicians.FindAsync(TechnicianId);
+            if (newTechnician == null)
+            {
+                ModelState.AddModelError(string.Empty, "Selected technician not found.");
+                return RedirectToAction("MyTickets");
+            }
+
+            // Update ticket assignment
             ticket.AssignedTechnicianId = TechnicianId;
             ticket.ReassignReason = ReassignReason;
+            ticket.StatusChangedAt = DateTime.Now;
 
             _context.Update(ticket);
             await _context.SaveChangesAsync();
+
+            // Send email notification to new technician
+            var subject = $"Ticket {ticket.TicketNumber} Reassigned to You";
+            var body = $@"
+        <p>Dear {newTechnician.FullName},</p>
+        <p>The ticket <strong>{ticket.TicketNumber}</strong> has been reassigned to you by <strong>{currentTechnician.FullName}</strong>.</p>
+        <p><strong>Reason for reassignment:</strong> {ReassignReason}</p>
+        <p>Please log in to the system to review the ticket details.</p>
+        <p>Thank you,<br/>IT HelpDesk System</p>";
+
+            await _emailSender.SendEmailAsync(newTechnician.Email, subject, body);
 
             return RedirectToAction("MyTickets");
         }
@@ -551,6 +718,7 @@ namespace ITHelpDesk.Controllers
             ticket.SeniorTechnicianId = model.SeniorTechnicianId;
             ticket.EscalateReason = model.EscalateReason;
 
+
             _context.Update(ticket);
             await _context.SaveChangesAsync();
 
@@ -560,11 +728,11 @@ namespace ITHelpDesk.Controllers
             // Compose email
             var subject = "New Escalated Ticket Assigned to You";
             var message = $@"
-<p>Dear {senior.FullName},</p>
-<p>A ticket has been escalated for your review.</p>
-<p><strong>Reason:</strong> {model.EscalateReason}</p>
-<p><a href='{url}'>Click here to view and respond to the ticket</a></p>
-<p>Regards,<br/>IT HelpDesk System</p>";
+               <p>Dear {senior.FullName},</p>
+               <p>A ticket has been escalated for your review.</p>
+               <p><strong>Reason:</strong> {model.EscalateReason}</p>
+               <p><a href='{url}'>Click here to view and respond to the ticket</a></p>
+               <p>Regards,<br/>IT HelpDesk System</p>";
 
             try
             {
@@ -576,6 +744,39 @@ namespace ITHelpDesk.Controllers
                 _logger.LogError(ex, "Failed to send escalation email to {Email}", senior.Email);
                 TempData["Error"] = "The ticket was escalated, but the email failed to send.";
             }
+
+            return RedirectToAction("MyTickets");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangePriority(int ticketId, int priorityId)
+        {
+            var ticket = await _context.Tickets
+                .Include(t => t.Priority)
+                .FirstOrDefaultAsync(t => t.Id == ticketId);
+
+            if (ticket == null)
+                return NotFound();
+
+            var newPriority = await _context.Priorities.FindAsync(priorityId);
+            if (newPriority == null)
+                return BadRequest("Priority not found.");
+
+            ticket.PriorityId = newPriority.Id;
+
+            _context.Tickets.Update(ticket);
+            await _context.SaveChangesAsync();
+
+            // Send email to user
+            var subject = $"Ticket {ticket.TicketNumber} Priority Updated";
+            var body = $@"
+        <p>Dear {ticket.RequesterName},</p>
+        <p>The priority of your ticket <strong>{ticket.TicketNumber}</strong> has been updated to <strong>{newPriority.PriorityName}</strong> by a technician.</p>
+        <p><strong>Description:</strong> {ticket.Description}</p>
+        <p>Thank you,<br/>IT HelpDesk Team</p>";
+
+            await _emailSender.SendEmailAsync(ticket.Email, subject, body);
 
             return RedirectToAction("MyTickets");
         }

@@ -1,90 +1,160 @@
 ﻿@model IEnumerable<ITHelpDesk.Models.Ticket>
 
 @{
+    Layout = "_Layout";
     ViewData["Title"] = "My Tickets";
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
 }
 
-<h2>Assigned Tickets</h2>
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Ticket Management</h2>
+        <div class="btn-group" role="group">
+            <a asp-action="MyTickets" class="btn @(currentAction == "MyTickets" ? "btn-primary" : "btn-outline-primary")">
+                <i class="fas fa-tasks me-1"></i> Assigned
+            </a>
+            <a asp-action="ClosedTickets" class="btn @(currentAction == "ClosedTickets" ? "btn-success" : "btn-outline-success")">
+                <i class="fas fa-check-circle me-1"></i> Closed
+            </a>
+            <a asp-action="UnassignedTickets" class="btn @(currentAction == "UnassignedTickets" ? "btn-warning" : "btn-outline-warning")">
+                <i class="fas fa-question-circle me-1"></i> Unassigned
+            </a>
+        </div>
+    </div>
 
-<div class="btn-group mb-3" role="group">
-    <a asp-action="MyTickets" class="btn @(currentAction == "MyTickets" ? "btn-primary" : "btn-outline-primary")">Assigned</a>
-    <a asp-action="ClosedTickets" class="btn @(currentAction == "ClosedTickets" ? "btn-success" : "btn-outline-success")">Closed</a>
-    <a asp-action="UnassignedTickets" class="btn @(currentAction == "UnassignedTickets" ? "btn-warning" : "btn-outline-warning")">Unassigned</a>
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ticket #</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Technician</th>
+                            <th>Created</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var ticket in Model)
+                        {
+                            <tr class="@GetPriorityRowClass(ticket.Priority?.PriorityName)">
+                                <td class="fw-bold">@ticket.TicketNumber</td>
+                                <td class="text-truncate" style="max-width: 200px;" title="@ticket.Description">
+                                    @ticket.Description
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">@ticket.Category?.CategoryName</span>
+                                    @if (!string.IsNullOrEmpty(ticket.Subcategory?.SubcategoryName))
+                                    {
+                                        <br/>
+                                        <span class="badge bg-light text-dark">@ticket.Subcategory?.SubcategoryName</span>
+                                    }
+                                </td>
+                                <td>
+                                    <form asp-action="ChangePriority" method="post" class="d-flex align-items-center">
+                                        <input type="hidden" name="TicketId" value="@ticket.Id" />
+                                        <select name="PriorityId" class="form-select form-select-sm" onchange="this.form.submit()">
+                                            @foreach (var priority in ViewBag.Priorities as List<Priority>)
+                                            {
+                                                <option value="@priority.Id" selected="@(priority.Id == ticket.PriorityId)">
+                                                    @priority.PriorityName
+                                                </option>
+                                            }
+                                        </select>
+                                    </form>
+                                </td>
+                                <td>
+                                    @if (ticket.Status != null)
+                                    {
+                                        <span class="badge @GetStatusBadgeClass(ticket.Status.StatusName)">
+                                            @ticket.Status.StatusName
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (ticket.AssignedTechnician != null)
+                                    {
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm me-2 bg-primary text-white d-flex align-items-center justify-content-center rounded-circle">
+                                                @ticket.AssignedTechnician.FullName?[0]
+                                            </div>
+                                            <span>@ticket.AssignedTechnician.FullName</span>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Unassigned</span>
+                                    }
+                                </td>
+                                <td>
+                                    <small class="text-muted">@ticket.CreatedAt.ToString("MMM dd, yyyy")</small>
+                                </td>
+                                <td class="text-end">
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-light rounded-circle" type="button"
+                                                id="dropdownMenuButton-@ticket.Id"
+                                                data-bs-toggle="dropdown"
+                                                data-bs-display="static"
+                                                aria-expanded="false"
+                                                style="width: 32px; height: 32px;">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-up"
+                                            aria-labelledby="dropdownMenuButton-@ticket.Id">
+                                            <li>
+                                                <a class="dropdown-item" asp-action="Details" asp-controller="Tickets"
+                                                   asp-route-id="@ticket.Id">
+                                                    <i class="fas fa-info-circle me-2"></i>View Details
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <form asp-action="Resolution" asp-controller="Technicians" method="get">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@ticket.Id" />
+                                                    <button type="submit" class="dropdown-item">
+                                                        <i class="fas fa-check-circle me-2"></i>Resolution
+                                                    </button>
+                                                </form>
+                                            </li>
+                                            <li>
+                                                <button type="button" class="dropdown-item" data-bs-toggle="modal"
+                                                        data-bs-target="#reassignModal" onclick="setReassignTicketId(@ticket.Id)">
+                                                    <i class="fas fa-user-friends me-2"></i>Reassign
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <form asp-action="Escalate" asp-controller="Technicians" method="get">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@ticket.Id" />
+                                                    <button type="submit" class="dropdown-item">
+                                                        <i class="fas fa-exclamation-triangle me-2"></i>Escalate
+                                                    </button>
+                                                </form>
+                                            </li>
+                                            @if (!string.IsNullOrEmpty(ticket.FileName))
+                                            {
+                                                <li>
+                                                    <a class="dropdown-item" href="~/uploads/@ticket.FileName" target="_blank">
+                                                        <i class="fas fa-file-alt me-2"></i>View Document
+                                                    </a>
+                                                </li>
+                                            }
+                                        </ul>
+                                    </div>
+                                </td>
+
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
-
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>TicketNumber</th>
-            <th>Description</th>
-            <th>Category</th>
-            <th>Subcategory</th>
-            <th>Priority</th>
-            <th>Status</th>
-            <th>Assigned To</th>
-            <th>Document</th>
-            <th>Created At</th>
-            <th>Action</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var ticket in Model)
-        {
-            <tr>
-                <td>@ticket.TicketNumber</td>
-                <td>@ticket.Description</td>
-                <td>@ticket.Category?.CategoryName</td>
-                <td>@ticket.Subcategory?.SubcategoryName</td>
-                <td>@ticket.Priority?.PriorityName</td>
-                <td>@ticket.Status?.StatusName</td>
-                <td>@ticket.AssignedTechnician?.FullName</td>
-                <td>
-                    @if (!string.IsNullOrEmpty(ticket.FileName))
-                    {
-                        <a href="~/uploads/@ticket.FileName" target="_blank">View Document</a>
-                    }
-                    else
-                    {
-                        <span>No document</span>
-                    }
-                </td>
-                <td>@ticket.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
-                <td>
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-light" type="button" id="dropdownMenuButton-@ticket.Id" data-bs-toggle="dropdown" aria-expanded="false" style="border: none;">
-                            &#x22EE;
-                        </button>
-                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton-@ticket.Id">
-                            <li>
-                                <form asp-action="Resolution" asp-controller="Technicians" method="get">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="id" value="@ticket.Id" />
-                                    <button type="submit" class="dropdown-item">Resolution</button>
-                                </form>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" asp-action="Details" asp-controller="Tickets" asp-route-id="@ticket.Id">View Information</a>
-                            </li>
-                            <li>
-                                <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#reassignModal" onclick="setReassignTicketId(@ticket.Id)">
-                                    Reassign
-                                </button>
-                            </li>
-                            <li>
-                                <form asp-action="Escalate" asp-controller="Technicians" method="get">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="id" value="@ticket.Id" />
-                                    <button type="submit" class="dropdown-item">Escalate</button>
-                                </form>
-                            </li>
-                        </ul>
-                    </div>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
 
 <!-- Reassign Modal -->
 <div class="modal fade" id="reassignModal" tabindex="-1" aria-labelledby="reassignModalLabel" aria-hidden="true">
@@ -92,7 +162,7 @@
         <form asp-action="ReassignTicket" asp-controller="Technicians" method="post">
             @Html.AntiForgeryToken()
             <div class="modal-content">
-                <div class="modal-header">
+                <div class="modal-header bg-light">
                     <h5 class="modal-title" id="reassignModalLabel">Reassign Ticket</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -112,21 +182,105 @@
 
                     <div class="mb-3">
                         <label for="ReassignReason" class="form-label">Reason for Reassignment</label>
-                        <textarea class="form-control" name="ReassignReason" required></textarea>
+                        <textarea class="form-control" name="ReassignReason" rows="3" required></textarea>
                     </div>
                 </div>
 
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary">Submit</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Confirm Reassignment</button>
                 </div>
             </div>
         </form>
     </div>
 </div>
 
+@functions {
+    string GetPriorityRowClass(string priorityName)
+    {
+        switch (priorityName?.ToLower())
+        {
+            case "high":
+                return "table-danger";
+            case "medium":
+                return "table-warning";
+            case "low":
+                return "table-info";
+            default:
+                return "";
+        }
+    }
+
+    string GetStatusBadgeClass(string statusName)
+    {
+        switch (statusName?.ToLower())
+        {
+            case "open":
+                return "bg-primary";
+            case "in progress":
+                return "bg-info";
+            case "resolved":
+                return "bg-success";
+            case "closed":
+                return "bg-secondary";
+            case "pending":
+                return "bg-warning";
+            default:
+                return "bg-light text-dark";
+        }
+    }
+}
+
 <script>
     function setReassignTicketId(ticketId) {
         document.getElementById("reassignTicketId").value = ticketId;
     }
+
+    
+
 </script>
+
+<style>
+    .avatar-sm {
+        width: 24px;
+        height: 24px;
+        font-size: 0.8rem;
+        display: inline-flex;
+    }
+
+    .table-hover tbody tr:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease;
+    }
+
+    .text-truncate {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .dropdown-menu {
+        max-height: none !important;
+        overflow: visible !important;
+        position: absolute !important;
+        top: 100% !important;
+        bottom: auto !important;
+        z-index: 1050;
+    }
+
+    .dropdown {
+        position: relative;
+    }
+
+    .table-responsive {
+        overflow: visible !important;
+    }
+
+    td {
+        position: relative;
+        overflow: visible !important;
+    }
+
+
+</style>

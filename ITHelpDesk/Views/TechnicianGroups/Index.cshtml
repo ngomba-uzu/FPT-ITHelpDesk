@@ -1,35 +1,50 @@
 ﻿@model IEnumerable<ITHelpDesk.Models.TechnicianGroup>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Technician Groups";
+    Layout = "_Layout";
 }
 
-<h1>Index</h1>
-
+<h1>Technician Groups</h1>
 <p>
-    <a asp-action="Create">Create New</a>
+    <a asp-action="Create" class="btn btn-primary">Create New Group</a>
 </p>
-<table class="table">
+
+<table class="table table-bordered">
     <thead>
         <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.GroupName)
-            </th>
-            <th></th>
+            <th>Group Name</th>
+            <th>Technicians</th>
+            <th>Actions</th>
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.GroupName)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-            </td>
-        </tr>
-}
+        @foreach (var group in Model)
+        {
+            <tr>
+                <td>@group.GroupName</td>
+                <td>
+                    @if (group.Technicians != null && group.Technicians.Any())
+                    {
+                        <ul>
+                            @foreach (var tech in group.Technicians)
+                            {
+                                <li>@tech.FullName</li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <em>No technicians</em>
+                    }
+                </td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@group.Id">Edit</a> |
+                    <a asp-action="Details" asp-route-id="@group.Id">Details</a> |
+                    <a asp-action="Delete" asp-route-id="@group.Id">Delete</a>
+                </td>
+            </tr>
+        }
     </tbody>
 </table>
+

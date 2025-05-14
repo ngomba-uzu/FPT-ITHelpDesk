@@ -1,0 +1,35 @@
+﻿@model int
+
+<li class="nav-item dropdown">
+    <a class="nav-link position-relative" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="far fa-bell"></i>
+        @if (Model > 0)
+        {
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                @Model
+                <span class="visually-hidden">unread notifications</span>
+            </span>
+        }
+    </a>
+    <div class="dropdown-menu dropdown-menu-end dropdown-menu-lg p-0" aria-labelledby="notificationDropdown">
+        <div class="dropdown-header bg-primary text-white">
+            Notifications
+            @if (Model > 0)
+            {
+                <span class="badge bg-danger float-end">@Model New</span>
+            }
+        </div>
+        <div id="notificationList" style="max-height: 400px; overflow-y: auto;">
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+        <div class="dropdown-footer text-center p-2">
+            <a href="#" class="text-dark">View All</a>
+        </div>
+    </div>
+</li>
+
+

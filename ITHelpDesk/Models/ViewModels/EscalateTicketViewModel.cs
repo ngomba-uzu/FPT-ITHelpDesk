@@ -14,6 +14,7 @@ namespace ITHelpDesk.Models.ViewModels
 
         [Required]
         public string EscalateReason { get; set; }
+        public string Status { get; set; }
 
         [ValidateNever]
         public List<SeniorTechnician> SeniorTechnicians { get; set; }
