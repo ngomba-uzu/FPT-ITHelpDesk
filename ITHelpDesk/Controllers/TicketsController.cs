@@ -13,6 +13,7 @@ using System.Text.RegularExpressions;
 using ITHelpDesk.Models.ViewModels;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using ITHelpDesk.Services;
+using System.Text;
 
 namespace ITHelpDesk.Controllers
 {
@@ -406,6 +407,80 @@ namespace ITHelpDesk.Controllers
         {
             return _context.Tickets.Any(e => e.Id == id);
         }
+
+        public async Task<IActionResult> PortTickets(string month)
+        {
+            var ticketsQuery = _context.Tickets
+                .Include(t => t.Status)
+                .Include(t => t.Port)
+                .Include(t => t.Category)
+                .Include(t => t.Subcategory)
+                .Include(t => t.Priority)
+                .Include(t => t.AssignedTechnician) // Ensure this includes FullName
+                .Include(t => t.Department)
+                .Where(t => t.PortId != null);
+
+            DateTime selectedMonth;
+            if (!string.IsNullOrEmpty(month) && DateTime.TryParse(month + "-01", out selectedMonth))
+            {
+                ticketsQuery = ticketsQuery
+                    .Where(t => t.CreatedAt.Month == selectedMonth.Month && t.CreatedAt.Year == selectedMonth.Year);
+
+                ViewBag.SelectedMonth = month;
+                ViewBag.SelectedMonthName = selectedMonth.ToString("MMMM yyyy");
+            }
+
+            var tickets = await ticketsQuery.ToListAsync();
+            return View(tickets);
+        }
+
+
+
+        [HttpPost]
+        public async Task<IActionResult> ExportTickets(string month)
+        {
+            DateTime selectedMonth;
+            var ticketsQuery = _context.Tickets
+                .Include(t => t.Status)
+                .Include(t => t.Port)
+                .Include(t => t.Category)
+                .Include(t => t.Subcategory)
+                .Include(t => t.Priority)
+                .Include(t => t.AssignedTechnician)
+                 .Include(t => t.Department)
+                .Where(t => t.PortId != null);
+
+            if (!string.IsNullOrEmpty(month) && DateTime.TryParse(month + "-01", out selectedMonth))
+            {
+                ticketsQuery = ticketsQuery
+                    .Where(t => t.CreatedAt.Month == selectedMonth.Month && t.CreatedAt.Year == selectedMonth.Year);
+            }
+
+            var tickets = await ticketsQuery.ToListAsync();
+
+            var csv = new StringBuilder();
+            csv.AppendLine("Ticket ID,Requester Name,Department,Port,Priority,Category,Subcategory,Status,Assigned Technician,Created Date");
+
+            foreach (var t in tickets)
+            {
+                csv.AppendLine($"{t.TicketNumber}," +
+                               $"{t.RequesterName}," +
+                               $"{t.Department?.DepartmentName}," +
+                               $"{t.Port?.PortName}," +
+                               $"{t.Priority?.PriorityName}," +
+                               $"{t.Category?.CategoryName}," +
+                               $"{t.Subcategory?.SubcategoryName}," +
+                               $"{t.Status?.StatusName}," +
+                               $"{t.AssignedTechnician?.FullName}," +
+                               $"{t.CreatedAt:yyyy-MM-dd}");
+            }
+
+            var fileName = $"PortTickets_{(string.IsNullOrEmpty(month) ? "All" : month)}.csv";
+            var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+            return File(bytes, "text/csv", fileName);
+        }
+
+
 
     }
 }

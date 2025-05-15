@@ -49,7 +49,7 @@
                         <tbody>
                             @foreach (var ticket in Model)
                             {
-                                <tr class="@GetPriorityRowClass(ticket.Priority?.PriorityName)">
+                                <tr>
                                     <td class="fw-bold">@ticket.TicketNumber</td>
                                     <td>
                                         <div class="d-flex flex-column">
@@ -96,20 +96,7 @@
 </div>
 
 @functions {
-    string GetPriorityRowClass(string priorityName)
-    {
-        switch (priorityName?.ToLower())
-        {
-            case "high":
-                return "table-danger";
-            case "medium":
-                return "table-warning";
-            case "low":
-                return "table-info";
-            default:
-                return "";
-        }
-    }
+ 
 
     string GetPriorityBadgeClass(string priorityName)
     {

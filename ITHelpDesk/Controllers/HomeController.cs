@@ -55,81 +55,86 @@ namespace ITHelpDesk.Controllers
                 if (technician != null)
                 {
                     int technicianId = technician.Id;
+                    int technicianGroupId = technician.TechnicianGroupId;
 
-                    // Get technician's assigned tickets
-                    var technicianTickets = _context.Tickets
+                    // Tickets assigned to this technician
+                    var assignedTickets = _context.Tickets
+                        .Include(t => t.Status)
                         .Where(t => t.AssignedTechnicianId == technicianId);
 
-                    // Technician activities
+                    // Tickets unassigned but routed to technician's group via Subcategory
+                    var unassignedGroupTickets = _context.Tickets
+                        .Include(t => t.Status)
+                        .Include(t => t.Subcategory)
+                        .Where(t =>
+                            t.AssignedTechnicianId == null &&
+                            t.Subcategory != null &&
+                            t.Subcategory.TechnicianGroupId == technicianGroupId &&
+                            t.Status != null &&
+                            t.Status.StatusName == "Unassigned");
+
+                    int openedCount = await unassignedGroupTickets.CountAsync();
+                    int pendingCount = await assignedTickets.CountAsync(t => t.Status != null && t.Status.StatusName == "Assigned");
+                    int closedCount = await assignedTickets.CountAsync(t => t.Status != null && t.Status.StatusName == "Closed");
+                    int escalatedCount = await assignedTickets.CountAsync(t => t.SeniorTechnicianId != null);
+                    int totalCount = await assignedTickets.CountAsync() + openedCount; // ? Fixed line
+
                     ViewBag.TechnicianStats = new
                     {
-                        Opened = await technicianTickets
-                            .CountAsync(t => t.Status != null && t.Status.StatusName == "Open"),
-                        Pending = await technicianTickets
-                            .CountAsync(t => t.Status != null && t.Status.StatusName == "Pending"),
-                        Closed = await technicianTickets
-                            .CountAsync(t => t.Status != null && t.Status.StatusName == "Closed"),
-                        Escalated = await technicianTickets
-                            .CountAsync(t => t.SeniorTechnicianId != null)
+                        Opened = openedCount,
+                        Pending = pendingCount,
+                        Closed = closedCount,
+                        Escalated = escalatedCount,
+                        Total = totalCount
                     };
+                
 
-                    // Get all ports assigned to this technician
-                    var assignedPorts = await _context.TechnicianPorts
+
+
+                // Get assigned ports for this technician
+                var assignedPorts = await _context.TechnicianPorts
                         .Where(tp => tp.TechnicianId == technicianId)
                         .Include(tp => tp.Port)
                         .ToListAsync();
 
-                    ViewBag.AssignedPorts = assignedPorts.Select(p => p.Port).ToList();
-
                     if (assignedPorts.Any())
                     {
-                        // Get all port IDs for this technician
-                        var portIds = assignedPorts.Select(p => p.PortId).ToList();
+                        var primaryPort = assignedPorts.First().Port;
+                        ViewBag.AssignedPort = primaryPort;
 
-                        // Port monthly activities (aggregate across all assigned ports)
                         var portTickets = _context.Tickets
-                            .Where(t => portIds.Contains(t.PortId) &&
-                                      t.CreatedAt >= DateTime.Now.AddMonths(-1));
+                            .Where(t => t.PortId == primaryPort.Id &&
+                                        t.CreatedAt >= DateTime.Now.AddMonths(-1));
 
                         ViewBag.PortStats = new
                         {
+                            PortName = primaryPort.PortName,
                             Opened = await portTickets
-                                .CountAsync(t => t.Status != null && t.Status.StatusName == "Open"),
+                                .CountAsync(t => t.Status != null && t.Status.StatusName == "Unassigned"),
                             Pending = await portTickets
-                                .CountAsync(t => t.Status != null && t.Status.StatusName == "Pending"),
+                                .CountAsync(t => t.Status != null && t.Status.StatusName == "Assigned"),
                             Closed = await portTickets
                                 .CountAsync(t => t.Status != null && t.Status.StatusName == "Closed"),
                             Escalated = await portTickets
                                 .CountAsync(t => t.SeniorTechnicianId != null),
-                            TotalPorts = assignedPorts.Count
+                            Total = await portTickets.CountAsync()
                         };
-
-                        // For technicians with multiple ports, we'll also include per-port breakdown
-                        if (assignedPorts.Count > 1)
-                        {
-                            ViewBag.PortBreakdown = await _context.Tickets
-                                .Where(t => portIds.Contains(t.PortId) &&
-                                          t.CreatedAt >= DateTime.Now.AddMonths(-1))
-                                .GroupBy(t => t.PortId)
-                                .Select(g => new
-                                {
-                                    PortId = g.Key,
-                                    PortName = g.First().Port.PortName,
-                                    Opened = g.Count(t => t.Status != null && t.Status.StatusName == "Open"),
-                                    Pending = g.Count(t => t.Status != null && t.Status.StatusName == "Pending"),
-                                    Closed = g.Count(t => t.Status != null && t.Status.StatusName == "Closed"),
-                                    Escalated = g.Count(t => t.SeniorTechnicianId != null)
-                                })
-                                .ToListAsync();
-                        }
                     }
                     else
                     {
-                        ViewBag.PortStats = new { Opened = 0, Pending = 0, Closed = 0, Escalated = 0, TotalPorts = 0 };
+                        ViewBag.PortStats = new
+                        {
+                            PortName = "No Port Assigned",
+                            Opened = 0,
+                            Pending = 0,
+                            Closed = 0,
+                            Escalated = 0,
+                            Total = 0
+                        };
                     }
 
                     // Technician's assigned tickets with related data
-                    ViewBag.TechnicianTickets = await technicianTickets
+                    ViewBag.TechnicianTickets = await assignedTickets
                         .Include(t => t.Status)
                         .Include(t => t.Priority)
                         .Include(t => t.Port)
@@ -145,22 +150,29 @@ namespace ITHelpDesk.Controllers
                             Site = t.Port != null ? t.Port.PortName : "N/A",
                             Category = t.Category != null ? t.Category.CategoryName : "N/A",
                             Subcategory = t.Subcategory != null ? t.Subcategory.SubcategoryName : "N/A",
-                            Priority = t.Priority != null ? t.Priority.PriorityName : "N/A"
+                            Priority = t.Priority != null ? t.Priority.PriorityName : "N/A",
+                            Status = t.Status != null ? t.Status.StatusName : "N/A"
                         })
                         .ToListAsync();
                 }
                 else
                 {
-                    // Default values if technician record not found
-                    ViewBag.TechnicianStats = new { Opened = 0, Pending = 0, Closed = 0, Escalated = 0 };
-                    ViewBag.PortStats = new { Opened = 0, Pending = 0, Closed = 0, Escalated = 0, TotalPorts = 0 };
+                    ViewBag.TechnicianStats = new { Opened = 0, Pending = 0, Closed = 0, Escalated = 0, Total = 0 };
+                    ViewBag.PortStats = new
+                    {
+                        PortName = "No Port Assigned",
+                        Opened = 0,
+                        Pending = 0,
+                        Closed = 0,
+                        Escalated = 0,
+                        Total = 0
+                    };
                     ViewBag.TechnicianTickets = new List<object>();
                 }
             }
 
             return View();
         }
-
 
 
         public IActionResult AccessDenied()

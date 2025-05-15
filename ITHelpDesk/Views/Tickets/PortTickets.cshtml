@@ -1,0 +1,181 @@
+﻿@model IEnumerable<ITHelpDesk.Models.Ticket>
+@{
+    ViewBag.Title = "Port Tickets";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-anchor me-2"></i>Port Tickets
+        </h2>
+
+        <div class="d-flex align-items-center gap-3">
+            <!-- Filter by Month -->
+            <form method="get" asp-action="PortTickets" class="d-flex align-items-center gap-2">
+                <label for="month" class="form-label mb-0">Filter by Month:</label>
+                <input type="month"
+                       name="month"
+                       id="month"
+                       value="@ViewBag.SelectedMonth"
+                       class="form-control form-control-sm"
+                       onchange="this.form.submit()">
+            </form>
+
+            <!-- Export Button -->
+            @if (Model.Any())
+            {
+                <form method="post" asp-action="ExportTickets" class="ms-2">
+                    <input type="hidden" name="month" value="@ViewBag.SelectedMonth" />
+                    <button type="submit" class="btn btn-sm btn-success">
+                        <i class="fas fa-file-export me-1"></i> Export @ViewBag.SelectedMonthName Tickets
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ticket#</th>
+                            <th>Requester</th>
+                            <th>Department</th>
+                            <th>Port</th>
+                            <th>Priority</th>
+                            <th>Category</th>
+                            <th>Status</th>
+                            <th>Technician</th>
+                            <th>Created</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var ticket in Model)
+                        {
+                            <tr>
+                                <td class="fw-bold">@ticket.TicketNumber</td>
+                                <td>@ticket.RequesterName</td>
+                                <td>@ticket.Department?.DepartmentName</td>
+                                <td>
+                                    <span class="badge bg-secondary">@ticket.Port?.PortName</span>
+                                </td>
+                                <td>
+                                    <span class="badge @GetPriorityBadgeClass(ticket.Priority?.PriorityName)">
+                                        @ticket.Priority?.PriorityName
+                                    </span>
+                                </td>
+                                <td>
+                                    <div>@ticket.Category?.CategoryName</div>
+                                    <small class="text-muted">@ticket.Subcategory?.SubcategoryName</small>
+                                </td>
+                                <td>
+                                    <span class="badge @GetStatusBadgeClass(ticket.Status?.StatusName)">
+                                        @ticket.Status?.StatusName
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (ticket.AssignedTechnician != null)
+                                    {
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm me-2 bg-primary text-white d-flex align-items-center justify-content-center rounded-circle">
+                                                @ticket.AssignedTechnician.FullName?[0]
+                                            </div>
+                                            <span>@ticket.AssignedTechnician.FullName</span>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Unassigned</span>
+                                    }
+                                </td>
+                                <td>
+                                    <small class="text-muted">@ticket.CreatedAt.ToString("MMM dd, yyyy")</small>
+                                </td>
+                                <td class="text-end">
+                                    <a asp-action="Details" asp-controller="Tickets" asp-route-id="@ticket.Id"
+                                       class="btn btn-sm btn-outline-primary" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="10" class="text-center py-4">
+                                    <div class="alert alert-info mb-0">
+                                        <i class="fas fa-info-circle me-2"></i> No tickets found for the selected month.
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    string GetPriorityBadgeClass(string priorityName)
+    {
+        switch (priorityName?.ToLower())
+        {
+            case "high":
+                return "bg-danger";
+            case "medium":
+                return "bg-warning text-dark";
+            case "low":
+                return "bg-info";
+            default:
+                return "bg-secondary";
+        }
+    }
+
+    string GetStatusBadgeClass(string statusName)
+    {
+        switch (statusName?.ToLower())
+        {
+            case "open":
+                return "bg-primary";
+            case "in progress":
+                return "bg-info";
+            case "resolved":
+                return "bg-success";
+            case "closed":
+                return "bg-secondary";
+            case "pending":
+                return "bg-warning text-dark";
+            default:
+                return "bg-light text-dark";
+        }
+    }
+}
+
+<style>
+    .avatar-sm {
+        width: 24px;
+        height: 24px;
+        font-size: 0.8rem;
+        display: inline-flex;
+    }
+
+    .table-hover tbody tr:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease;
+    }
+
+    .badge {
+        font-weight: 500;
+        padding: 0.35em 0.65em;
+    }
+
+    .form-control-sm {
+        max-width: 200px;
+    }
+</style>

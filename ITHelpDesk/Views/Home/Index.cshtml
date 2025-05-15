@@ -129,150 +129,120 @@
             <div class="col-md-6">
                 <div class="card shadow-sm h-100">
                     <div class="card-header bg-white border-bottom-0">
-                        <h5 class="fw-bold mb-0">Technician Activities</h5>
+                        <h5 class="fw-bold mb-0">Your Ticket Assignments</h5>
                     </div>
                     <div class="card-body">
                         <div class="row text-center">
                             <!-- Opened Tickets -->
-                            <div class="col-md-3 mb-3">
+                            <div class="col-6 col-md-3 mb-3">
                                 <div class="p-3 bg-light bg-opacity-10 rounded">
-                                    <h6 class="text-muted mb-1">Opened</h6>
+                                    <h6 class="text-muted mb-1"><i class="bi bi-envelope-open text-primary me-1"></i>Opened</h6>
                                     <h3 class="fw-bold mb-0 text-primary">@ViewBag.TechnicianStats?.Opened</h3>
                                 </div>
                             </div>
 
                             <!-- Pending Tickets -->
-                            <div class="col-md-3 mb-3">
+                            <div class="col-6 col-md-3 mb-3">
                                 <div class="p-3 bg-light bg-opacity-10 rounded">
-                                    <h6 class="text-muted mb-1">Pending</h6>
+                                    <h6 class="text-muted mb-1"><i class="bi bi-clock text-warning me-1"></i>Pending</h6>
                                     <h3 class="fw-bold mb-0 text-warning">@ViewBag.TechnicianStats?.Pending</h3>
                                 </div>
                             </div>
 
                             <!-- Closed Tickets -->
-                            <div class="col-md-3 mb-3">
+                            <div class="col-6 col-md-3 mb-3">
                                 <div class="p-3 bg-light bg-opacity-10 rounded">
-                                    <h6 class="text-muted mb-1">Closed</h6>
+                                    <h6 class="text-muted mb-1"><i class="bi bi-check-circle text-success me-1"></i>Closed</h6>
                                     <h3 class="fw-bold mb-0 text-success">@ViewBag.TechnicianStats?.Closed</h3>
                                 </div>
                             </div>
 
                             <!-- Escalated Tickets -->
-                            <div class="col-md-3 mb-3">
+                            <div class="col-6 col-md-3 mb-3">
                                 <div class="p-3 bg-light bg-opacity-10 rounded">
-                                    <h6 class="text-muted mb-1">Escalated</h6>
+                                    <h6 class="text-muted mb-1"><i class="bi bi-exclamation-triangle text-danger me-1"></i>Escalated</h6>
                                     <h3 class="fw-bold mb-0 text-danger">@ViewBag.TechnicianStats?.Escalated</h3>
+                                </div>
+                            </div>
+
+                            <!-- Total Tickets -->
+                            <div class="col-12 mt-3">
+                                <div class="p-3 bg-light bg-opacity-10 rounded">
+                                    <h6 class="text-muted mb-1"><i class="bi bi-list-task text-dark me-1"></i>Total Tickets</h6>
+                                    <h3 class="fw-bold mb-0 text-dark">@ViewBag.TechnicianStats?.Total</h3>
                                 </div>
                             </div>
                         </div>
                     </div>
+                    <div class="card-footer bg-transparent border-top-0">
+                        <a href="@Url.Action("MyTickets", "Technicians")" class="btn btn-primary w-100">Open Your Tickets</a>
+                    </div>
                 </div>
             </div>
 
-            <!-- Port Monthly Activities Card -->
+            <!-- Port Activities Card -->
             <div class="col-md-6">
                 <div class="card shadow-sm h-100">
                     <div class="card-header bg-white border-bottom-0">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="fw-bold mb-0">Port Monthly Activities</h5>
-                            @if (ViewBag.PortStats?.TotalPorts > 1)
-                            {
-                                <span class="badge bg-info">Multiple Ports: @ViewBag.PortStats.TotalPorts</span>
-                            }
-                        </div>
+                        <h5 class="fw-bold mb-0">@ViewBag.PortStats?.PortName Activity</h5>
                     </div>
                     <div class="card-body">
-                        @if (ViewBag.PortStats?.TotalPorts > 1)
-                        {
-                            <div class="alert alert-info mb-3 py-2">
-                                <small>Showing combined statistics for all assigned ports</small>
-                            </div>
-                        }
-
                         <div class="row text-center">
                             <!-- Opened Tickets -->
-                            <div class="col-md-3 mb-3">
+                            <div class="col-6 col-md-3 mb-3">
                                 <div class="p-3 bg-light bg-opacity-10 rounded">
-                                    <h6 class="text-muted mb-1">Opened</h6>
+                                    <h6 class="text-muted mb-1"><i class="bi bi-envelope-open text-primary me-1"></i>Opened</h6>
                                     <h3 class="fw-bold mb-0 text-primary">@ViewBag.PortStats?.Opened</h3>
                                 </div>
                             </div>
 
                             <!-- Pending Tickets -->
-                            <div class="col-md-3 mb-3">
+                            <div class="col-6 col-md-3 mb-3">
                                 <div class="p-3 bg-light bg-opacity-10 rounded">
-                                    <h6 class="text-muted mb-1">Pending</h6>
+                                    <h6 class="text-muted mb-1"><i class="bi bi-clock text-warning me-1"></i>Pending</h6>
                                     <h3 class="fw-bold mb-0 text-warning">@ViewBag.PortStats?.Pending</h3>
                                 </div>
                             </div>
 
                             <!-- Closed Tickets -->
-                            <div class="col-md-3 mb-3">
+                            <div class="col-6 col-md-3 mb-3">
                                 <div class="p-3 bg-light bg-opacity-10 rounded">
-                                    <h6 class="text-muted mb-1">Closed</h6>
+                                    <h6 class="text-muted mb-1"><i class="bi bi-check-circle text-success me-1"></i>Closed</h6>
                                     <h3 class="fw-bold mb-0 text-success">@ViewBag.PortStats?.Closed</h3>
                                 </div>
                             </div>
 
                             <!-- Escalated Tickets -->
-                            <div class="col-md-3 mb-3">
+                            <div class="col-6 col-md-3 mb-3">
                                 <div class="p-3 bg-light bg-opacity-10 rounded">
-                                    <h6 class="text-muted mb-1">Escalated</h6>
+                                    <h6 class="text-muted mb-1"><i class="bi bi-exclamation-triangle text-danger me-1"></i>Escalated</h6>
                                     <h3 class="fw-bold mb-0 text-danger">@ViewBag.PortStats?.Escalated</h3>
                                 </div>
                             </div>
-                        </div>
 
-                        @if (ViewBag.PortBreakdown != null)
-                        {
-                            <div class="mt-4">
-                                <h6 class="fw-bold mb-3">Details by Port:</h6>
-                                <div class="row">
-                                    @foreach (var port in ViewBag.PortBreakdown)
-                                    {
-                                        <div class="col-md-6 mb-3">
-                                            <div class="card border-0 shadow-sm">
-                                                <div class="card-header bg-light">
-                                                    <h6 class="fw-bold mb-0">@port.PortName</h6>
-                                                </div>
-                                                <div class="card-body">
-                                                    <div class="row text-center">
-                                                        <div class="col-3">
-                                                            <small class="text-muted">Opened</small>
-                                                            <div class="fw-bold">@port.Opened</div>
-                                                        </div>
-                                                        <div class="col-3">
-                                                            <small class="text-muted">Pending</small>
-                                                            <div class="fw-bold">@port.Pending</div>
-                                                        </div>
-                                                        <div class="col-3">
-                                                            <small class="text-muted">Closed</small>
-                                                            <div class="fw-bold">@port.Closed</div>
-                                                        </div>
-                                                        <div class="col-3">
-                                                            <small class="text-muted">Escalated</small>
-                                                            <div class="fw-bold">@port.Escalated</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    }
+                            <!-- Total Tickets -->
+                            <div class="col-12 mt-3">
+                                <div class="p-3 bg-light bg-opacity-10 rounded">
+                                    <h6 class="text-muted mb-1"><i class="bi bi-list-task text-dark me-1"></i>Total Tickets</h6>
+                                    <h3 class="fw-bold mb-0 text-dark">@ViewBag.PortStats?.Total</h3>
                                 </div>
                             </div>
-                        }
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent border-top-0">
+                        <a href="@Url.Action("PortTickets", "Tickets")" class="btn btn-outline-primary w-100">Open Port Tickets</a>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Search and Tickets Table -->
+        <!-- Ticket List -->
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-white border-bottom-0">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="fw-bold mb-0">Your Tickets</h5>
+                    <h5 class="fw-bold mb-0">Your Assigned Tickets</h5>
                     <div class="col-md-4">
-                        <form method="get" action="@Url.Action("Dashboard", "Home")">
+                        <form method="get" action="@Url.Action("Index", "Home")">
                             <div class="input-group">
                                 <input type="text" class="form-control" name="search" placeholder="Search tickets..." value="@Context.Request.Query["search"]">
                                 <button class="btn btn-outline-secondary" type="submit">
@@ -290,11 +260,10 @@
                             <tr class="table-light">
                                 <th>Ticket #</th>
                                 <th>Requester</th>
-                                <th>Email</th>
                                 <th>Site</th>
                                 <th>Category</th>
-                                <th>Subcategory</th>
                                 <th>Priority</th>
+                                <th>Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -303,10 +272,11 @@
                                 <tr>
                                     <td class="fw-bold">@ticket.TicketNumber</td>
                                     <td>@ticket.RequesterName</td>
-                                    <td>@ticket.RequesterEmail</td>
                                     <td>@ticket.Site</td>
-                                    <td>@ticket.Category</td>
-                                    <td>@ticket.Subcategory</td>
+                                    <td>
+                                        <div>@ticket.Category</div>
+                                        <small class="text-muted">@ticket.Subcategory</small>
+                                    </td>
                                     <td>
                                         @{
                                             var priorityClass = "";
@@ -328,6 +298,30 @@
                                         }
                                         <span class="badge @priorityClass">@ticket.Priority</span>
                                     </td>
+                                    <td>
+                                        @{
+                                            var statusClass = "";
+                                            switch (ticket.Status?.ToLower())
+                                            {
+                                                case "open":
+                                                    statusClass = "bg-primary bg-opacity-10 text-primary";
+                                                    break;
+                                                case "pending":
+                                                    statusClass = "bg-warning bg-opacity-10 text-warning";
+                                                    break;
+                                                case "closed":
+                                                    statusClass = "bg-success bg-opacity-10 text-success";
+                                                    break;
+                                                case "assigned":
+                                                    statusClass = "bg-info bg-opacity-10 text-info";
+                                                    break;
+                                                default:
+                                                    statusClass = "bg-secondary bg-opacity-10 text-secondary";
+                                                    break;
+                                            }
+                                        }
+                                        <span class="badge @statusClass">@ticket.Status</span>
+                                    </td>
                                 </tr>
                             }
                         </tbody>
@@ -336,8 +330,6 @@
             </div>
         </div>
     }
-
-
     else if (role == "Technical Support")
     {
         <div class="alert alert-info">Technical Support Dashboard</div>
@@ -354,8 +346,8 @@
     }
 </div>
 
-
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css" rel="stylesheet">
 
 <style>
     .icon-bg {
@@ -386,8 +378,6 @@
     }
 
     .card-body {
-        min-height: 120px; /* optional fixed height */
+        min-height: 120px;
     }
-
-   
 </style>

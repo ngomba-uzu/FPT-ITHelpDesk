@@ -41,7 +41,8 @@
                     <tbody>
                         @foreach (var ticket in Model)
                         {
-                            <tr class="@GetPriorityRowClass(ticket.Priority?.PriorityName)">
+                            <tr>
+                                <!-- Removed the priority row class -->
                                 <td class="fw-bold">@ticket.TicketNumber</td>
                                 <td class="text-truncate" style="max-width: 200px;" title="@ticket.Description">
                                     @ticket.Description
@@ -50,7 +51,7 @@
                                     <span class="badge bg-secondary">@ticket.Category?.CategoryName</span>
                                     @if (!string.IsNullOrEmpty(ticket.Subcategory?.SubcategoryName))
                                     {
-                                        <br/>
+                                        <br />
                                         <span class="badge bg-light text-dark">@ticket.Subcategory?.SubcategoryName</span>
                                     }
                                 </td>
@@ -98,12 +99,11 @@
                                         <button class="btn btn-sm btn-light rounded-circle" type="button"
                                                 id="dropdownMenuButton-@ticket.Id"
                                                 data-bs-toggle="dropdown"
-                                                data-bs-display="static"
                                                 aria-expanded="false"
                                                 style="width: 32px; height: 32px;">
                                             <i class="fas fa-ellipsis-v"></i>
                                         </button>
-                                        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-up"
+                                        <ul class="dropdown-menu dropdown-menu-end"
                                             aria-labelledby="dropdownMenuButton-@ticket.Id">
                                             <li>
                                                 <a class="dropdown-item" asp-action="Details" asp-controller="Tickets"
@@ -146,7 +146,6 @@
                                         </ul>
                                     </div>
                                 </td>
-
                             </tr>
                         }
                     </tbody>
@@ -196,20 +195,7 @@
 </div>
 
 @functions {
-    string GetPriorityRowClass(string priorityName)
-    {
-        switch (priorityName?.ToLower())
-        {
-            case "high":
-                return "table-danger";
-            case "medium":
-                return "table-warning";
-            case "low":
-                return "table-info";
-            default:
-                return "";
-        }
-    }
+    // Removed the GetPriorityRowClass function completely
 
     string GetStatusBadgeClass(string statusName)
     {
@@ -236,8 +222,23 @@
         document.getElementById("reassignTicketId").value = ticketId;
     }
 
-    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize Bootstrap dropdowns
+        var dropdowns = document.querySelectorAll('.dropdown');
 
+        dropdowns.forEach(function(dropdown) {
+            dropdown.addEventListener('shown.bs.dropdown', function() {
+                var menu = this.querySelector('.dropdown-menu');
+                var rect = menu.getBoundingClientRect();
+
+                // Check if dropdown goes off bottom of screen
+                if (rect.bottom > window.innerHeight) {
+                    menu.style.maxHeight = (window.innerHeight - rect.top - 10) + 'px';
+                    menu.style.overflowY = 'auto';
+                }
+            });
+        });
+    });
 </script>
 
 <style>
@@ -261,12 +262,8 @@
     }
 
     .dropdown-menu {
-        max-height: none !important;
-        overflow: visible !important;
-        position: absolute !important;
-        top: 100% !important;
-        bottom: auto !important;
-        z-index: 1050;
+        position: absolute;
+        z-index: 1000;
     }
 
     .dropdown {
@@ -274,13 +271,10 @@
     }
 
     .table-responsive {
-        overflow: visible !important;
+        overflow: visible;
     }
 
     td {
-        position: relative;
-        overflow: visible !important;
+        position: static;
     }
-
-
 </style>
