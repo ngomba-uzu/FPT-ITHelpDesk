@@ -13,5 +13,10 @@ namespace ITHelpDesk.Models
         [NotMapped]
         [ValidateNever]
         public List<int>? SelectedTechnicianIds { get; set; }
+
+        public int SeniorTechnicianId { get; set; }  // 👈 FK to SeniorTechnician
+        [ValidateNever]
+        public SeniorTechnician SeniorTechnician { get; set; }
+
     }
 }

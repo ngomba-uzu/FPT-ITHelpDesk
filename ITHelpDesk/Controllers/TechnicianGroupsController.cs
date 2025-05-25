@@ -24,7 +24,7 @@ namespace ITHelpDesk.Controllers
         {
             var groups = await _context.TechnicianGroups
                 .Include(g => g.Technicians)
-                  
+                   .Include(g => g.SeniorTechnician) // ✅ Include Senior Technician 
                 .ToListAsync();
 
             return View(groups);
@@ -41,6 +41,7 @@ namespace ITHelpDesk.Controllers
 
             var technicianGroup = await _context.TechnicianGroups
                 .Include(g => g.Technicians) // 👈 Include related technicians
+                  .Include(g => g.SeniorTechnician) // 
                 .FirstOrDefaultAsync(m => m.Id == id);
 
             if (technicianGroup == null)
@@ -59,7 +60,7 @@ namespace ITHelpDesk.Controllers
                 Technicians = new List<Technician>(), // optional, just for clarity
                 SelectedTechnicianIds = new List<int>()
             };
-
+            ViewBag.SeniorTechnicianId = new SelectList(_context.SeniorTechnicians, "Id", "FullName");
             ViewBag.TechnicianList = new MultiSelectList(_context.Technicians, "Id", "FullName");
 
             return View(technicianGroup);
@@ -90,6 +91,7 @@ namespace ITHelpDesk.Controllers
 
             // Repopulate technician list if model state is invalid
             ViewBag.AllTechnicians = _context.Technicians.ToList();
+            ViewBag.SeniorTechnicianId = new SelectList(_context.SeniorTechnicians, "Id", "FullName", technicianGroup.SeniorTechnicianId);
             return View(technicianGroup);
         }
 
@@ -116,6 +118,7 @@ namespace ITHelpDesk.Controllers
 
             // Send all available technicians to the view
             ViewBag.AllTechnicians = _context.Technicians.ToList();
+            ViewBag.SeniorTechnicianId = new SelectList(_context.SeniorTechnicians, "Id", "FullName", technicianGroup.SeniorTechnicianId);
 
             return View(technicianGroup);
         }
@@ -147,6 +150,7 @@ namespace ITHelpDesk.Controllers
 
                     // Update the group name
                     groupToUpdate.GroupName = technicianGroup.GroupName;
+                    groupToUpdate.SeniorTechnicianId = technicianGroup.SeniorTechnicianId; // ✅ Add this
 
                     // Update technicians
                     groupToUpdate.Technicians.Clear();
@@ -180,6 +184,7 @@ namespace ITHelpDesk.Controllers
             }
 
             ViewBag.TechnicianList = new MultiSelectList(_context.Technicians, "Id", "FullName", technicianGroup.SelectedTechnicianIds);
+            ViewBag.SeniorTechnicianId = new SelectList(_context.SeniorTechnicians, "Id", "FullName", technicianGroup.SeniorTechnicianId);
             return View(technicianGroup);
         }
 
@@ -194,6 +199,7 @@ namespace ITHelpDesk.Controllers
 
             var technicianGroup = await _context.TechnicianGroups
                 .Include(g => g.Technicians)
+                 .Include(g => g.SeniorTechnician)
                 .FirstOrDefaultAsync(m => m.Id == id);
 
             if (technicianGroup == null)

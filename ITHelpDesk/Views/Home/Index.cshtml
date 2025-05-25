@@ -126,138 +126,126 @@
         <!-- Summary Cards -->
         <div class="row g-3 mb-4">
             <!-- Technician Activities Card -->
-            <div class="col-md-6">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header bg-white border-bottom-0">
-                        <h5 class="fw-bold mb-0">Your Ticket Assignments</h5>
+            <div class="col-lg-6">
+                <div class="card shadow-sm h-100 border-0">
+                    <div class="card-header bg-primary bg-gradient text-white">
+                        <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Your Ticket Assignments</h5>
                     </div>
                     <div class="card-body">
-                        <div class="row text-center">
-                            <!-- Opened Tickets -->
-                            <div class="col-6 col-md-3 mb-3">
-                                <div class="p-3 bg-light bg-opacity-10 rounded">
-                                    <h6 class="text-muted mb-1"><i class="bi bi-envelope-open text-primary me-1"></i>Opened</h6>
-                                    <h3 class="fw-bold mb-0 text-primary">@ViewBag.TechnicianStats?.Opened</h3>
+                        <div class="row align-items-center">
+                            <div class="col-md-7">
+                                <div class="row g-3 text-center">
+                                    <div class="col-6">
+                                        <div class="p-3 bg-light rounded">
+                                            <small class="text-muted d-block">UNASSIGNED</small>
+                                            <h3 class="fw-bold text-primary mb-0">@ViewBag.TechnicianStats?.Opened</h3>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="p-3 bg-light rounded">
+                                            <small class="text-muted d-block">PENDING</small>
+                                            <h3 class="fw-bold text-warning mb-0">@ViewBag.TechnicianStats?.Pending</h3>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="p-3 bg-light rounded">
+                                            <small class="text-muted d-block">CLOSED</small>
+                                            <h3 class="fw-bold text-success mb-0">@ViewBag.TechnicianStats?.Closed</h3>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="p-3 bg-light rounded">
+                                            <small class="text-muted d-block">ESCALATED</small>
+                                            <h3 class="fw-bold text-danger mb-0">@ViewBag.TechnicianStats?.Escalated</h3>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-
-                            <!-- Pending Tickets -->
-                            <div class="col-6 col-md-3 mb-3">
-                                <div class="p-3 bg-light bg-opacity-10 rounded">
-                                    <h6 class="text-muted mb-1"><i class="bi bi-clock text-warning me-1"></i>Pending</h6>
-                                    <h3 class="fw-bold mb-0 text-warning">@ViewBag.TechnicianStats?.Pending</h3>
-                                </div>
-                            </div>
-
-                            <!-- Closed Tickets -->
-                            <div class="col-6 col-md-3 mb-3">
-                                <div class="p-3 bg-light bg-opacity-10 rounded">
-                                    <h6 class="text-muted mb-1"><i class="bi bi-check-circle text-success me-1"></i>Closed</h6>
-                                    <h3 class="fw-bold mb-0 text-success">@ViewBag.TechnicianStats?.Closed</h3>
-                                </div>
-                            </div>
-
-                            <!-- Escalated Tickets -->
-                            <div class="col-6 col-md-3 mb-3">
-                                <div class="p-3 bg-light bg-opacity-10 rounded">
-                                    <h6 class="text-muted mb-1"><i class="bi bi-exclamation-triangle text-danger me-1"></i>Escalated</h6>
-                                    <h3 class="fw-bold mb-0 text-danger">@ViewBag.TechnicianStats?.Escalated</h3>
-                                </div>
-                            </div>
-
-                            <!-- Total Tickets -->
-                            <div class="col-12 mt-3">
-                                <div class="p-3 bg-light bg-opacity-10 rounded">
-                                    <h6 class="text-muted mb-1"><i class="bi bi-list-task text-dark me-1"></i>Total Tickets</h6>
-                                    <h3 class="fw-bold mb-0 text-dark">@ViewBag.TechnicianStats?.Total</h3>
-                                </div>
+                            <div class="col-md-5">
+                                <canvas id="assignmentsChart" class="mt-3 mt-md-0"></canvas>
                             </div>
                         </div>
                     </div>
                     <div class="card-footer bg-transparent border-top-0">
-                        <a href="@Url.Action("MyTickets", "Technicians")" class="btn btn-primary w-100">Open Your Tickets</a>
+                        <a href="@Url.Action("MyTickets", "Technicians")" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-ticket-alt me-2"></i>Manage Tickets
+                        </a>
                     </div>
                 </div>
             </div>
 
-            <!-- Port Activities Card -->
-            <div class="col-md-6">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header bg-white border-bottom-0">
-                        <h5 class="fw-bold mb-0">@ViewBag.PortStats?.PortName Activity</h5>
+            <!-- Port Activity Card -->
+            <div class="col-lg-6">
+                <div class="card shadow-sm h-100 border-0">
+                    <div class="card-header bg-info bg-gradient text-white">
+                        <h5 class="mb-0"><i class="fas fa-anchor me-2"></i>@ViewBag.PortStats?.PortName Activity</h5>
                     </div>
                     <div class="card-body">
-                        <div class="row text-center">
-                            <!-- Opened Tickets -->
-                            <div class="col-6 col-md-3 mb-3">
-                                <div class="p-3 bg-light bg-opacity-10 rounded">
-                                    <h6 class="text-muted mb-1"><i class="bi bi-envelope-open text-primary me-1"></i>Opened</h6>
-                                    <h3 class="fw-bold mb-0 text-primary">@ViewBag.PortStats?.Opened</h3>
+                        <div class="row align-items-center">
+                            <div class="col-md-7">
+                                <div class="row g-3 text-center">
+                                    <div class="col-6">
+                                        <div class="p-3 bg-light rounded">
+                                            <small class="text-muted d-block">UNASSIGNED</small>
+                                            <h3 class="fw-bold text-primary mb-0">@ViewBag.PortStats?.Opened</h3>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="p-3 bg-light rounded">
+                                            <small class="text-muted d-block">PENDING</small>
+                                            <h3 class="fw-bold text-warning mb-0">@ViewBag.PortStats?.Pending</h3>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="p-3 bg-light rounded">
+                                            <small class="text-muted d-block">CLOSED</small>
+                                            <h3 class="fw-bold text-success mb-0">@ViewBag.PortStats?.Closed</h3>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="p-3 bg-light rounded">
+                                            <small class="text-muted d-block">ESCALATED</small>
+                                            <h3 class="fw-bold text-danger mb-0">@ViewBag.PortStats?.Escalated</h3>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-
-                            <!-- Pending Tickets -->
-                            <div class="col-6 col-md-3 mb-3">
-                                <div class="p-3 bg-light bg-opacity-10 rounded">
-                                    <h6 class="text-muted mb-1"><i class="bi bi-clock text-warning me-1"></i>Pending</h6>
-                                    <h3 class="fw-bold mb-0 text-warning">@ViewBag.PortStats?.Pending</h3>
-                                </div>
-                            </div>
-
-                            <!-- Closed Tickets -->
-                            <div class="col-6 col-md-3 mb-3">
-                                <div class="p-3 bg-light bg-opacity-10 rounded">
-                                    <h6 class="text-muted mb-1"><i class="bi bi-check-circle text-success me-1"></i>Closed</h6>
-                                    <h3 class="fw-bold mb-0 text-success">@ViewBag.PortStats?.Closed</h3>
-                                </div>
-                            </div>
-
-                            <!-- Escalated Tickets -->
-                            <div class="col-6 col-md-3 mb-3">
-                                <div class="p-3 bg-light bg-opacity-10 rounded">
-                                    <h6 class="text-muted mb-1"><i class="bi bi-exclamation-triangle text-danger me-1"></i>Escalated</h6>
-                                    <h3 class="fw-bold mb-0 text-danger">@ViewBag.PortStats?.Escalated</h3>
-                                </div>
-                            </div>
-
-                            <!-- Total Tickets -->
-                            <div class="col-12 mt-3">
-                                <div class="p-3 bg-light bg-opacity-10 rounded">
-                                    <h6 class="text-muted mb-1"><i class="bi bi-list-task text-dark me-1"></i>Total Tickets</h6>
-                                    <h3 class="fw-bold mb-0 text-dark">@ViewBag.PortStats?.Total</h3>
-                                </div>
+                            <div class="col-md-5">
+                                <canvas id="portActivityChart" class="mt-3 mt-md-0"></canvas>
                             </div>
                         </div>
                     </div>
                     <div class="card-footer bg-transparent border-top-0">
-                        <a href="@Url.Action("PortTickets", "Tickets")" class="btn btn-outline-primary w-100">Open Port Tickets</a>
+                        <a href="@Url.Action("PortTickets", "Tickets")" class="btn btn-outline-info w-100">
+                            <i class="fas fa-ship me-2"></i>View Port Tickets
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Ticket List -->
-        <div class="card shadow-sm mb-4">
+        <!-- Tickets Table -->
+        <div class="card shadow-sm border-0">
             <div class="card-header bg-white border-bottom-0">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="fw-bold mb-0">Your Assigned Tickets</h5>
-                    <div class="col-md-4">
-                        <form method="get" action="@Url.Action("Index", "Home")">
-                            <div class="input-group">
-                                <input type="text" class="form-control" name="search" placeholder="Search tickets..." value="@Context.Request.Query["search"]">
-                                <button class="btn btn-outline-secondary" type="submit">
-                                    <i class="fas fa-search"></i>
-                                </button>
-                            </div>
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center">
+                    <h5 class="mb-3 mb-md-0"><i class="fas fa-tasks me-2"></i>Assigned Tickets</h5>
+                    <div class="col-md-5">
+                        <form method="get" class="input-group shadow-sm">
+                            <input type="text" class="form-control border-end-0"
+                            name="search" placeholder="Search tickets..."
+                            value="@Context.Request.Query["search"]">
+                            <button class="btn btn-outline-secondary border-start-0" type="submit">
+                                <i class="fas fa-search"></i>
+                            </button>
                         </form>
                     </div>
                 </div>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr class="table-light">
+                    <table class="table table-hover mb-0">
+                        <thead class="bg-light">
+                            <tr>
                                 <th>Ticket #</th>
                                 <th>Requester</th>
                                 <th>Site</th>
@@ -272,7 +260,7 @@
                                 <tr>
                                     <td class="fw-bold">@ticket.TicketNumber</td>
                                     <td>@ticket.RequesterName</td>
-                                    <td>@ticket.Site</td>
+                                    <td>@ticket.Port?.PortName</td>
                                     <td>
                                         <div>@ticket.Category</div>
                                         <small class="text-muted">@ticket.Subcategory</small>
@@ -329,21 +317,533 @@
                 </div>
             </div>
         </div>
+
+    }
+    else if (role == "Management")
+    {
+        <div class="container-fluid px-4">
+            <!-- Key Metrics -->
+            <div class="row g-4 mb-4">
+                <div class="col-xxl-3 col-md-6">
+                    <div class="card shadow-sm h-100 border-start border-primary border-4">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">Active Ports</h6>
+                                    <h2 class="mb-0">@ViewBag.ManagementStats?.ActivePorts</h2>
+                                </div>
+                                <div class="icon-bg bg-primary bg-opacity-10">
+                                    <i class="fas fa-anchor text-primary fs-4"></i>
+                                </div>
+                            </div>
+                            <small class="text-muted">Out of @ViewBag.ManagementStats?.TotalPorts total ports</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xxl-3 col-md-6">
+                    <div class="card shadow-sm h-100 border-start border-success border-4">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">Resolved Today</h6>
+                                    <h2 class="mb-0">@ViewBag.ManagementStats?.ResolvedToday</h2>
+                                </div>
+                                <div class="icon-bg bg-success bg-opacity-10">
+                                    <i class="fas fa-check-circle text-success fs-4"></i>
+                                </div>
+                            </div>
+                            <small class="text-muted">@ViewBag.ManagementStats?.ActiveTickets active tickets</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xxl-3 col-md-6">
+                    <div class="card shadow-sm h-100 border-start border-danger border-4">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">Escalations</h6>
+                                    <h2 class="mb-0">
+                                        @(ViewBag.ManagementStats?.EscalatedTickets > 0 ? ViewBag.ManagementStats.EscalatedTickets : 0)
+                                    </h2>
+                                </div>
+                                <div class="icon-bg bg-danger bg-opacity-10">
+                                    <i class="fas fa-exclamation-triangle text-danger fs-4"></i>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                @if (ViewBag.ManagementStats?.HighPriorityEscalations > 0)
+                                {
+                                    <div class="text-danger small">
+                                        <i class="fas fa-circle-exclamation me-1"></i>
+                                        @ViewBag.ManagementStats.HighPriorityEscalations critical
+                                    </div>
+                                }
+                                @if (ViewBag.ManagementStats?.UnattendedHighPriority > 0)
+                                {
+                                    <div class="text-warning small mt-2">
+                                        <i class="fas fa-clock me-1"></i>
+                                        @ViewBag.ManagementStats.UnattendedHighPriority unattended
+                                    </div>
+                                }
+                                @if (ViewBag.ManagementStats?.HighPriorityEscalations == 0 && ViewBag.ManagementStats?.UnattendedHighPriority == 0)
+                                {
+                                    <div class="text-muted small">
+                                        No active critical issues
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xxl-3 col-md-6">
+                    <div class="card shadow-sm h-100 border-start border-info border-4">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">Tech Utilization</h6>
+                                    <h2 class="mb-0">@ViewBag.ManagementStats?.ActiveTechnicians</h2>
+                                </div>
+                                <div class="icon-bg bg-info bg-opacity-10">
+                                    <i class="fas fa-users text-info fs-4"></i>
+                                </div>
+                            </div>
+                            <small class="text-muted">Active technicians</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Port Activity Section -->
+            <div class="row g-4 mb-4">
+                <div class="col-xxl-8">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Port Activity Overview</h5>
+                            <div class="dropdown">
+                                <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#">Export CSV</a></li>
+                                    <li><a class="dropdown-item" href="#">View All Ports</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th class="ps-4">Port</th>
+                                            <th class="text-center">Status Distribution</th>
+                                            <th class="text-end pe-4">Tech Utilization</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var port in ViewBag.Ports)
+                                        {
+                                            var totalTickets = port.OpenTickets + port.PendingTickets + port.ClosedTickets + port.EscalatedTickets;
+
+                                            <tr class="border-top">
+                                                <td class="ps-4 fw-bold">@port.PortName</td>
+
+                                                <!-- Status Distribution Column -->
+                                                <td>
+                                                    <div class="d-flex flex-column gap-2">
+                                                        <!-- Stacked Progress Bar -->
+                                                        <div class="progress" style="height: 8px">
+                                                            <div class="progress-bar bg-warning" role="progressbar"
+                                                                 style="width: @((port.OpenTickets/(double)totalTickets).ToString("P0"))"
+                                                                 title="Open: @port.OpenTickets"></div>
+                                                            <div class="progress-bar bg-info" role="progressbar"
+                                                                 style="width: @((port.PendingTickets/(double)totalTickets).ToString("P0"))"
+                                                                 title="Pending: @port.PendingTickets"></div>
+                                                            <div class="progress-bar bg-success" role="progressbar"
+                                                                 style="width: @((port.ClosedTickets/(double)totalTickets).ToString("P0"))"
+                                                                 title="Closed: @port.ClosedTickets"></div>
+                                                            <div class="progress-bar bg-danger" role="progressbar"
+                                                                 style="width: @((port.EscalatedTickets/(double)totalTickets).ToString("P0"))"
+                                                                 title="Escalated: @port.EscalatedTickets"></div>
+                                                        </div>
+
+                                                        <!-- Status Badges -->
+                                                        <div class="d-flex gap-3">
+                                                            <div class="d-flex align-items-center gap-1">
+                                                                <span class="badge bg-warning bg-opacity-10 text-warning">@port.OpenTickets</span>
+                                                                <small class="text-muted">Open</small>
+                                                            </div>
+                                                            <div class="d-flex align-items-center gap-1">
+                                                                <span class="badge bg-info bg-opacity-10 text-info">@port.PendingTickets</span>
+                                                                <small class="text-muted">Pending</small>
+                                                            </div>
+                                                            <div class="d-flex align-items-center gap-1">
+                                                                <span class="badge bg-success bg-opacity-10 text-success">@port.ClosedTickets</span>
+                                                                <small class="text-muted">Closed</small>
+                                                            </div>
+                                                            <div class="d-flex align-items-center gap-1">
+                                                                <span class="badge bg-danger bg-opacity-10 text-danger">@port.EscalatedTickets</span>
+                                                                <small class="text-muted">Escalated</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+
+                                                <!-- Tech Utilization Column -->
+                                                <td class="pe-4">
+                                                    <div class="d-flex align-items-center justify-content-end gap-3">
+                                                        <div class="text-end">
+                                                            <div class="fw-semibold">@port.TechnicianUtilization%</div>
+                                                           @*  <small class="text-muted">of capacity</small> *@
+                                                        </div>
+                                                        <div class="progress rounded-pill" style="width: 100px; height: 12px">
+                                                            <div class="progress-bar bg-info rounded-pill"
+                                                                 role="progressbar"
+                                                                 style="width: @port.TechnicianUtilization%"
+                                                                 aria-valuenow="@port.TechnicianUtilization"
+                                                                 aria-valuemin="0"
+                                                                 aria-valuemax="100">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Technician Allocation -->
+                <div class="col-xxl-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">Technician Allocation</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                @foreach (var port in ViewBag.Ports)
+                                {
+                                    <div class="col-12">
+                                        <div class="card card-port border">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                                    <h6 class="mb-0">@port.PortName</h6>
+                                                    <span class="badge bg-primary bg-opacity-10 text-primary">
+                                                        @port.Technicians.Count techs
+                                                    </span>
+                                                </div>
+                                                <div class="d-flex flex-wrap gap-2">
+                                                    @if (port.Technicians != null && port.Technicians.Count > 0)
+                                                    {
+                                                        @foreach (var tech in port.Technicians)
+                                                        {
+                                                            <div class="d-flex align-items-center bg-light rounded-pill p-2">
+                                                                <div class="avatar bg-primary bg-opacity-10 text-primary rounded-circle me-2">
+                                                                    @tech.Initials
+                                                                </div>
+                                                                <div>
+                                                                    <div class="fw-small">@tech.Name</div>
+                                                                    <small class="text-muted">@tech.TicketsHandled tickets</small>
+                                                                </div>
+                                                            </div>
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="text-muted">No technicians assigned</div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     }
     else if (role == "Technical Support")
     {
-        <div class="alert alert-info">Technical Support Dashboard</div>
-        <p>You can manage all ports and dropdown tables here. Features like:</p>
-        <ul>
-            <li>Create Ports</li>
-            <li>Manage Categories</li>
-            <li>Assign Technicians</li>
-        </ul>
+        <div class="container-fluid px-4">
+            <h2 class="mb-4"><i class="fas fa-tools me-2"></i>Technical Support Dashboard</h2>
+
+            <!-- Management Tabs -->
+            <nav>
+                <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#nav-ports" type="button">
+                        <i class="fas fa-anchor me-2"></i>Port Management
+                    </button>
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#nav-categories" type="button">
+                        <i class="fas fa-sitemap me-2"></i>Category Configuration
+                    </button>
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#nav-technicians" type="button">
+                        <i class="fas fa-users-cog me-2"></i>Technician Allocation
+                    </button>
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#nav-escalations" type="button">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Escalations (@ViewBag.EscalatedTicketsCount)
+                    </button>
+                </div>
+            </nav>
+
+            <div class="tab-content mt-4" id="nav-tabContent">
+                <!-- Port Management Tab -->
+                <div class="tab-pane fade show active" id="nav-ports">
+                    <div class="card shadow-sm">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Port Configuration</h5>
+                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addPortModal">
+                                <i class="fas fa-plus me-2"></i>Add New Port
+                            </button>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th>Port Name</th>
+                                            <th>Active Tickets</th>
+                                            <th>Assigned Technicians</th>
+                                            <th>Last Activity</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var port in ViewBag.Ports)
+                                        {
+                                            <tr>
+                                                <td>@port.PortName</td>
+                                                <td>@port.ActiveTickets</td>
+                                                <td>@port.TechnicianCount</td>
+                                                <td>@port.LastActivity</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-secondary">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger ms-2">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Category Configuration Tab -->
+                <div class="tab-pane fade" id="nav-categories">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card shadow-sm h-100">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Ticket Categories</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="list-group">
+                                        @foreach (var category in ViewBag.Categories)
+                                        {
+                                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    @category.CategoryName
+                                                    <span class="badge bg-primary ms-2">@category.SubcategoryCount subcategories</span>
+                                                </div>
+                                                <div>
+                                                    <button class="btn btn-sm btn-outline-secondary">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger ms-2">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                    <form class="mt-3">
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" placeholder="New category name">
+                                            <button class="btn btn-primary" type="button">
+                                                <i class="fas fa-plus me-2"></i>Add Category
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mt-4 mt-md-0">
+                            <div class="card shadow-sm h-100">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Subcategory Management</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form class="mb-4">
+                                        <div class="row g-2">
+                                            <div class="col-md-5">
+                                                <select class="form-select" asp-items="ViewBag.CategoriesSelectList"></select>
+                                            </div>
+                                            <div class="col-md-5">
+                                                <input type="text" class="form-control" placeholder="New subcategory">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <button class="btn btn-primary w-100">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                    <div class="list-group">
+                                        @foreach (var subcategory in ViewBag.Subcategories)
+                                        {
+                                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                                @subcategory.SubcategoryName
+                                                <span class="badge bg-info">@subcategory.CategoryName</span>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Technician Allocation Tab -->
+                <div class="tab-pane fade" id="nav-technicians">
+                    <div class="card shadow-sm">
+                        <div class="card-header">
+                            <h5 class="mb-0">Technician Management</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th>Technician</th>
+                                            <th>Assigned Ports</th>
+                                            <th>Specializations</th>
+                                            <th>Current Workload</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var tech in ViewBag.Technicians)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="avatar bg-primary text-white rounded-circle me-2">
+                                                        @GetInitials(tech.FullName)
+                                                    </div>
+                                                    @tech.FullName
+                                                </div>
+                                            </td>
+                                            <td>@tech.PortNames</td>
+                                            <td>@tech.GroupName</td>
+                                            <td>
+                                                <div class="progress" style="height: 8px">
+                                                    <div class="progress-bar" role="progressbar"
+                                                         style="width: @tech.WorkloadPercentage%">
+                                                    </div>
+                                                </div>
+                                                <small>@tech.WorkloadPercentage% capacity</small>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-secondary">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Escalations Tab -->
+                <div class="tab-pane fade" id="nav-escalations">
+                    <div class="card shadow-sm">
+                        <div class="card-header">
+                            <h5 class="mb-0">Escalated Tickets (@ViewBag.EscalatedTicketsCount)</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th>Ticket #</th>
+                                            <th>Port</th>
+                                            <th>Escalation Reason</th>
+                                            <th>Time Escalated</th>
+                                            <th>Assigned Senior Tech</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var ticket in ViewBag.EscalatedTickets)
+                                        {
+                                            <tr>
+                                                <td>@ticket.TicketNumber</td>
+                                                <td>@ticket.PortName</td>
+                                                <td>@ticket.SeniorTechnicianResponse</td>
+                                                <td>@ticket.EscalatedDate</td>
+                                                <td>
+                                                    @if (!string.IsNullOrEmpty(ticket.SeniorTech))
+                                                    {
+                                                        <span class="badge bg-primary">
+                                                            @GetInitials(ticket.SeniorTech)
+                                                        </span>
+                                                        @ticket.SeniorTech
+                                                    }
+                                                </td>
+                                            </tr>
+                                        
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Port Modal -->
+        <div class="modal fade" id="addPortModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Create New Port</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form asp-action="CreatePort" method="post">
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Port Name</label>
+                                <input type="text" class="form-control" name="portName" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Initial Technicians</label>
+                                <select class="form-select" multiple name="technicianIds"
+                                        asp-items="ViewBag.TechniciansList"></select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Create Port</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     }
-    else
-    {
-        <div class="alert alert-danger">No role assigned. Please contact the administrator.</div>
-    }
+   
 </div>
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
@@ -361,23 +861,125 @@
     }
 
     .card {
-        border-radius: 10px;
-        border: 1px solid #e9ecef;
+        border-radius: 0.75rem;
+        transition: transform 0.2s;
     }
 
-    .table th {
-        font-weight: 600;
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+    .card-header {
+        border-radius: 0.75rem 0.75rem 0 0 !important;
+        padding: 1.25rem 1.5rem;
+    }
+
+    .table thead th {
+        border-bottom: 2px solid #e3e6f0;
         font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: #6c757d;
     }
 
-    .table td {
-        vertical-align: middle;
+    .badge {
+        padding: 0.5em 0.75em;
+        border-radius: 0.5rem;
+        font-weight: 600;
     }
 
-    .card-body {
-        min-height: 120px;
+    canvas {
+        max-height: 180px;
+        width: 100% !important;
+    }
+
+    .avatar {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 500;
+    }
+
+    .card-port {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+        .card-port:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+
+    .port-chart-container {
+        height: 120px;
+        position: relative;
     }
 </style>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Ticket Assignments Chart (Technician)
+    const technicianAssignmentsCtx = document.getElementById('assignmentsChart')?.getContext('2d');
+    if (technicianAssignmentsCtx) {
+        new Chart(technicianAssignmentsCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Unassigned', 'Pending', 'Closed', 'Escalated'],
+                datasets: [{
+                    data: [
+    @ViewBag.TechnicianStats?.Opened ?? 0,
+    @ViewBag.TechnicianStats?.Pending ?? 0,
+    @ViewBag.TechnicianStats?.Closed ?? 0,
+    @ViewBag.TechnicianStats?.Escalated ?? 0
+                    ],
+                    backgroundColor: ['#4e73df', '#f6c23e', '#1cc88a', '#e74a3b'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                cutout: '70%'
+            }
+        });
+    }
+
+    // Port Activity Chart (Main Overview)
+    const portActivityCtx = document.getElementById('portActivityChart')?.getContext('2d');
+    if (portActivityCtx) {
+        new Chart(portActivityCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Unassigned', 'Pending', 'Closed', 'Escalated'],
+                datasets: [{
+                    data: [
+    @ViewBag.PortStats?.Opened ?? 0,
+    @ViewBag.PortStats?.Pending ?? 0,
+    @ViewBag.PortStats?.Closed ?? 0,
+    @ViewBag.PortStats?.Escalated ?? 0
+                    ],
+                    backgroundColor: ['#36b9cc', '#f6c23e', '#1cc88a', '#e74a3b'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                cutout: '70%'
+            }
+        });
+    }
+</script>
+
+
+
+ @functions {
+        string GetInitials(string fullName)
+        {
+            if (string.IsNullOrEmpty(fullName)) return "";
+            var names = fullName.Split(' ');
+            return names.Length switch
+            {
+                0 => "",
+                1 => names[0][0].ToString(),
+                _ => $"{names[0][0]}{names[^1][0]}"
+            };
+        }
+    }

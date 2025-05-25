@@ -10,7 +10,7 @@ namespace ITHelpDesk.Models
         [Required]
         [MaxLength(100)]
         public string PortName { get; set; }
-
+        public List<Ticket> Tickets { get; set; }
         public List<TechnicianPort> TechnicianPorts { get; set; } = new List<TechnicianPort>();
 
     }

@@ -52,9 +52,10 @@ namespace ITHelpDesk.Data
 
             modelBuilder.Entity<Ticket>()
                 .HasOne(t => t.Port)
-                .WithMany()
+                .WithMany(p => p.Tickets)
                 .HasForeignKey(t => t.PortId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict); // Or your preferred behavior
+
 
             modelBuilder.Entity<Ticket>()
                 .HasOne(t => t.Department)
@@ -68,6 +69,10 @@ namespace ITHelpDesk.Data
                 .HasForeignKey(t => t.PriorityId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<Technician>()
+                .HasMany(t => t.Tickets)
+                .WithOne(t => t.AssignedTechnician)
+                .HasForeignKey(t => t.AssignedTechnicianId);
         }
     }
 }

@@ -14,6 +14,7 @@ using ITHelpDesk.Models.ViewModels;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using ITHelpDesk.Services;
 using System.Text;
+using ITHelpDesk.Areas.Utility;
 
 namespace ITHelpDesk.Controllers
 {
@@ -77,6 +78,8 @@ namespace ITHelpDesk.Controllers
                 .Include(t => t.Port)
                 .Include(t => t.Priority)
                 .Include(t => t.Subcategory)
+                 .Include(t => t.ManuallyAssignedTo)
+                  .Include(t => t.ClosedByTechnician)
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (ticket == null)
             {
@@ -86,7 +89,7 @@ namespace ITHelpDesk.Controllers
             return View(ticket);
         }
 
-       
+
         // GET: Ticket/Create
         [HttpGet]
         public async Task<IActionResult> Create()
@@ -99,17 +102,31 @@ namespace ITHelpDesk.Controllers
                 return Unauthorized();
             }
 
-            var ticket = new Ticket
+            var ticket = new Ticket();
+
+            // Only pre-fill for non-technician roles
+            if (!User.IsInRole("Technician") && !User.IsInRole("TechnicalSupport"))
             {
-                RequesterName = appUser.FullName,
-                Email = appUser.Email,
-                PortId = appUser.PortId,
-                DepartmentId = appUser.DepartmentId
-            };
+                ticket.RequesterName = appUser.FullName;
+                ticket.Email = appUser.Email;
+                ticket.PortId = appUser.PortId;
+                ticket.DepartmentId = appUser.DepartmentId;
+            }
+
+            // Load technicians for manual assignment dropdown if user is technician/tech support
+            if (User.IsInRole("Technician") || User.IsInRole("TechnicalSupport"))
+            {
+                ViewBag.Technicians = new SelectList(
+                    await _context.Technicians.ToListAsync(),
+                    "Id",
+                    "FullName"
+                );
+            }
 
             LoadDropdowns(ticket);
             return View(ticket);
         }
+
 
 
 
@@ -128,7 +145,6 @@ namespace ITHelpDesk.Controllers
                     return Unauthorized();
                 }
 
-                // Get TechnicianGroupId from selected Subcategory
                 var subcategory = await _context.Subcategories
                     .FirstOrDefaultAsync(s => s.Id == ticket.SubcategoryId);
 
@@ -141,7 +157,49 @@ namespace ITHelpDesk.Controllers
 
                 ticket.TechnicianGroupId = subcategory.TechnicianGroupId;
 
-                // File upload
+                // Handle manual assignment for technicians/tech support
+                var isTechnician = await _userManager.IsInRoleAsync(appUser, "Technician");
+                var isTechnicalSupport = await _userManager.IsInRoleAsync(appUser, "TechnicalSupport");
+                var showTechnicianFields = isTechnician || isTechnicalSupport;
+                Technician assignedTech = null;
+
+                if (showTechnicianFields && ticket.ManuallyAssignedToId.HasValue)
+                {
+                    // Set the assigned technician
+                    ticket.AssignedTechnicianId = ticket.ManuallyAssignedToId.Value;
+                    assignedTech = await _context.Technicians.FindAsync(ticket.AssignedTechnicianId);
+
+                    // Set status to "Assigned"
+                    var assignedStatus = await _context.Status
+                        .FirstOrDefaultAsync(s => s.StatusName == "Assigned");
+
+                    if (assignedStatus != null)
+                    {
+                        ticket.StatusId = assignedStatus.Id;
+                    }
+                }
+                else
+                {
+                    // For regular users, ensure these fields are null
+                    ticket.Mode = null;
+                    ticket.ManuallyAssignedToId = null;
+                    ticket.EmailToNotify = null;
+                    ticket.Organization = null;
+
+                    // Set default status to "Unassigned"
+                    var defaultStatus = await _context.Status
+                        .FirstOrDefaultAsync(s => s.StatusName == "Unassigned");
+
+                    if (defaultStatus == null)
+                    {
+                        ModelState.AddModelError(string.Empty, "Default status 'Unassigned' not found.");
+                        LoadDropdowns(ticket);
+                        return View(ticket);
+                    }
+                    ticket.StatusId = defaultStatus.Id;
+                }
+
+                // Handle file upload
                 if (UploadedFile != null && UploadedFile.Length > 0)
                 {
                     var fileName = Path.GetFileName(UploadedFile.FileName);
@@ -165,95 +223,90 @@ namespace ITHelpDesk.Controllers
                     return View(ticket);
                 }
 
-                // Set ticket metadata
                 ticket.CreatedAt = DateTime.Now;
-                ticket.RequesterName = appUser.FullName;
-                ticket.Email = appUser.Email;
-                ticket.PortId = appUser.PortId;
-                ticket.DepartmentId = appUser.DepartmentId;
                 ticket.CreatedBy = appUser.Id;
 
-                // Assign default status
-                var defaultStatus = await _context.Status
-                    .FirstOrDefaultAsync(s => s.StatusName == "Unassigned");
-
-                if (defaultStatus == null)
-                {
-                    ModelState.AddModelError(string.Empty, "Default status 'Unassigned' not found. Please add it to the database.");
-                    LoadDropdowns(ticket);
-                    return View(ticket);
-                }
-
-                ticket.StatusId = defaultStatus.Id;
-
                 // Generate ticket number
-                var lastTicketNumber = await _context.Tickets
+                var lastTicket = await _context.Tickets
                     .Where(t => t.TicketNumber.StartsWith("#TKT-"))
                     .OrderByDescending(t => t.TicketNumber)
                     .Select(t => t.TicketNumber)
                     .FirstOrDefaultAsync();
 
-                int newTicketSequence = 1;
-                if (!string.IsNullOrEmpty(lastTicketNumber))
+                int newNumber = 1;
+                if (!string.IsNullOrEmpty(lastTicket))
                 {
-                    var match = Regex.Match(lastTicketNumber, @"#TKT-(\d+)");
+                    var match = Regex.Match(lastTicket, @"#TKT-(\d+)");
                     if (match.Success)
                     {
-                        newTicketSequence = int.Parse(match.Groups[1].Value) + 1;
+                        newNumber = int.Parse(match.Groups[1].Value) + 1;
                     }
                 }
 
-                ticket.TicketNumber = $"#TKT-{newTicketSequence:D3}";
+                ticket.TicketNumber = $"#TKT-{newNumber:D3}";
 
-                // Save the ticket
                 _context.Tickets.Add(ticket);
                 await _context.SaveChangesAsync();
 
-                // Load related data for email
-                ticket = await _context.Tickets
-                    .Include(t => t.Priority)
-                    .FirstOrDefaultAsync(t => t.Id == ticket.Id);
-
-                // ✅ Add high priority group notification
-                if (ticket.Priority?.PriorityName == "High" && ticket.TechnicianGroupId > 0)
+                // Now that we have the ticket number, we can send the email
+                if (showTechnicianFields && ticket.ManuallyAssignedToId.HasValue && !string.IsNullOrEmpty(ticket.EmailToNotify))
                 {
-                    await _notificationService.CreateGroupNotification(
-                        ticket.TechnicianGroupId,
-                        $"🚨 High priority ticket {ticket.TicketNumber}",
-                        ticket.Id
-                    );
+                    var subject = $"Ticket Created: {ticket.TicketNumber}";
+                    var body = $@"
+                <h3>A ticket has been created on your behalf</h3>
+                <p><strong>Ticket Number:</strong> {ticket.TicketNumber}</p>
+                <p><strong>Assigned To:</strong> {assignedTech?.FullName ?? "Technician"}</p>
+                <p><strong>Description:</strong> {ticket.Description}</p>
+                <p>You will be updated on the progress of this ticket.</p>";
+
+                    await _emailSender.SendEmailAsync(ticket.EmailToNotify, subject, body);
                 }
 
-                // Get technicians in the group AND assigned to the ticket's port
-                var matchingTechnicians = await _context.Technicians
-                    .Include(t => t.TechnicianPorts)
-                    .Where(t => t.TechnicianGroupId == ticket.TechnicianGroupId &&
-                                t.TechnicianPorts.Any(tp => tp.PortId == ticket.PortId))
-                    .ToListAsync();
-
-                if (matchingTechnicians.Any())
+                // Only send group notifications for non-manually assigned tickets
+                if (!showTechnicianFields || !ticket.ManuallyAssignedToId.HasValue)
                 {
-                    var subject = $"New Ticket Created: {ticket.TicketNumber}";
-                    var message = $@"
-        <p>A new support ticket has been submitted:</p>
-        <ul>
-            <li><strong>Ticket Number:</strong> {ticket.TicketNumber}</li>
-            <li><strong>Description:</strong> {ticket.Description}</li>
-            <li><strong>Priority:</strong> {ticket.Priority?.PriorityName ?? "N/A"}</li>
-            <li><strong>Submitted By:</strong> {ticket.RequesterName}</li>
-            <li><strong>Date:</strong> {ticket.CreatedAt:yyyy/MM/dd HH:mm:ss}</li>
-        </ul>
-        <p>Please log in to the system to view and assign the ticket.</p>";
+                    ticket = await _context.Tickets
+                        .Include(t => t.Priority)
+                        .FirstOrDefaultAsync(t => t.Id == ticket.Id);
 
-                    foreach (var technician in matchingTechnicians)
+                    if (ticket.Priority?.PriorityName == "High" && ticket.TechnicianGroupId > 0)
                     {
-                        if (!string.IsNullOrEmpty(technician.Email))
+                        await _notificationService.CreateGroupNotification(
+                            ticket.TechnicianGroupId,
+                            $"🚨 High priority ticket {ticket.TicketNumber}",
+                            ticket.Id
+                        );
+                    }
+
+                    var matchingTechs = await _context.Technicians
+                        .Include(t => t.TechnicianPorts)
+                        .Where(t => t.TechnicianGroupId == ticket.TechnicianGroupId &&
+                                    t.TechnicianPorts.Any(tp => tp.PortId == ticket.PortId))
+                        .ToListAsync();
+
+                    if (matchingTechs.Any())
+                    {
+                        var subject = $"New Ticket Created: {ticket.TicketNumber}";
+                        var body = $@"
+                    <p>A new support ticket has been submitted:</p>
+                    <ul>
+                        <li><strong>Ticket Number:</strong> {ticket.TicketNumber}</li>
+                        <li><strong>Description:</strong> {ticket.Description}</li>
+                        <li><strong>Priority:</strong> {ticket.Priority?.PriorityName ?? "N/A"}</li>
+                        <li><strong>Submitted By:</strong> {ticket.RequesterName}</li>
+                        <li><strong>Date:</strong> {ticket.CreatedAt:yyyy/MM/dd HH:mm:ss}</li>
+                    </ul>
+                    <p>Please log in to the system to view and assign the ticket.</p>";
+
+                        foreach (var tech in matchingTechs)
                         {
-                            await _emailSender.SendEmailAsync(technician.Email, subject, message);
+                            if (!string.IsNullOrEmpty(tech.Email))
+                            {
+                                await _emailSender.SendEmailAsync(tech.Email, subject, body);
+                            }
                         }
                     }
                 }
-
 
                 TempData["SuccessMessage"] = "Ticket successfully created.";
                 return RedirectToAction("Index");
@@ -261,7 +314,6 @@ namespace ITHelpDesk.Controllers
             catch (Exception ex)
             {
                 ModelState.AddModelError(string.Empty, "An error occurred: " + ex.Message);
-
                 if (ex.InnerException != null)
                 {
                     ModelState.AddModelError(string.Empty, "Inner Exception: " + ex.InnerException.Message);
@@ -276,7 +328,6 @@ namespace ITHelpDesk.Controllers
 
 
 
-
         // Updated LoadDropdowns to preserve selected values
         private void LoadDropdowns(Ticket ticket = null)
         {
@@ -285,6 +336,15 @@ namespace ITHelpDesk.Controllers
             ViewBag.CategoryId = new SelectList(_context.Categories, "Id", "CategoryName", ticket?.CategoryId);
             ViewBag.SubcategoryId = new SelectList(_context.Subcategories, "Id", "SubcategoryName", ticket?.SubcategoryId);
             ViewBag.PriorityId = new SelectList(_context.Priorities, "Id", "PriorityName", ticket?.PriorityId);
+
+            // Add RequestMode enum to ViewBag
+            ViewBag.RequestModes = Enum.GetValues(typeof(RequestMode))
+                .Cast<RequestMode>()
+                .Select(e => new SelectListItem
+                {
+                    Value = e.ToString(),
+                    Text = e.ToString()
+                });
         }
 
         [HttpGet]
@@ -302,7 +362,8 @@ namespace ITHelpDesk.Controllers
         }
 
 
-       
+
+
 
         // GET: Tickets/Edit/5
         public async Task<IActionResult> Edit(int? id)

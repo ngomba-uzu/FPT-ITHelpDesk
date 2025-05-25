@@ -1,12 +1,22 @@
 ﻿@model ITHelpDesk.Models.Ticket
+@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService AuthorizationService
 @{
     Layout = "_Layout";
     ViewData["Title"] = "Ticket Details";
+
+    var isTechnician = User.IsInRole("Technician");
+    var isTechnicalSupport = User.IsInRole("TechnicalSupport");
+
+    var showManualFields = isTechnician || isTechnicalSupport;
+    var isResolved = !string.IsNullOrEmpty(Model.Resolution);
+    var wasEscalated = !string.IsNullOrEmpty(Model.SeniorTechnicianResponse);
 }
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet" />
 
 <style>
+    /* Your existing styles remain the same */
     .ticket-detail-label {
         font-weight: 600;
         min-width: 150px;
@@ -57,6 +67,52 @@
     .btn-custom:hover {
         opacity: 0.9;
     }
+
+    .manual-creation-section {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-left: 4px solid #0d6efd;
+    }
+
+    .section-title {
+        font-weight: 600;
+        color: #0d6efd;
+        margin-bottom: 15px;
+    }
+
+    /* New styles for resolution section */
+    .resolution-section {
+        background-color: #f0f8ff;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
+        border-left: 4px solid #28a745;
+    }
+
+    .escalation-section {
+        background-color: #fff3cd;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
+        border-left: 4px solid #ffc107;
+    }
+
+    .resolution-document {
+        margin-top: 10px;
+    }
+
+    .resolution-document-link {
+        display: inline-flex;
+        align-items: center;
+        color: #0d6efd;
+        text-decoration: none;
+    }
+
+        .resolution-document-link:hover {
+            text-decoration: underline;
+        }
 </style>
 
 <div class="card card-custom">
@@ -66,12 +122,64 @@
     </div>
 
     <div class="card-body p-4">
+        @if (showManualFields && (Model.ManuallyAssignedToId.HasValue || !string.IsNullOrEmpty(Model.EmailToNotify) || !string.IsNullOrEmpty(Model.Organization)))
+        {
+            <div class="manual-creation-section">
+                <h5 class="section-title"><i class="fas fa-user-cog me-2"></i>Manual Creation Details</h5>
+                <div class="row">
+                    @if (Model.ManuallyAssignedToId.HasValue)
+                    {
+                        <div class="col-md-6 mb-3">
+                            <span class="ticket-detail-label">Assigned To</span>:
+                            @Model.ManuallyAssignedTo?.FullName
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.EmailToNotify))
+                    {
+                        <div class="col-md-6 mb-3">
+                            <span class="ticket-detail-label">Notified Email</span>:
+                            @Model.EmailToNotify
+                        </div>
+                    }
+                </div>
+                <div class="row">
+                    @if (!string.IsNullOrEmpty(Model.Organization))
+                    {
+                        <div class="col-md-6 mb-3">
+                            <span class="ticket-detail-label">Organization</span>:
+                            @Model.Organization
+                        </div>
+                    }
+                    @if (Model.Mode.HasValue)
+                    {
+                        <div class="col-md-6 mb-3">
+                            <span class="ticket-detail-label">Request Mode</span>:
+                            @Model.Mode.ToString()
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Ticket details display -->
         <div class="row">
             <div class="col-md-6 mb-3">
                 <span class="ticket-detail-label">Ticket Number</span>: @Model.TicketNumber
             </div>
             <div class="col-md-6 mb-3">
+                <span class="ticket-detail-label">Status</span>:
+                <span class="@(isResolved ? "text-success" : "")">
+                    @(isResolved ? "Resolved" : "Open")
+                </span>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
                 <span class="ticket-detail-label">Requester</span>: @Model.RequesterName
+            </div>
+            <div class="col-md-6 mb-3">
+                <span class="ticket-detail-label">Created At</span>: @Model.CreatedAt.ToString("MMM dd, yyyy hh:mm tt")
             </div>
         </div>
 
@@ -80,7 +188,8 @@
                 <span class="ticket-detail-label">Email</span>: @Model.Email
             </div>
             <div class="col-md-6 mb-3">
-                <span class="ticket-detail-label">Created At</span>: @Model.CreatedAt.ToString("MMM dd, yyyy hh:mm tt")
+                <span class="ticket-detail-label">Last Updated</span>:@(Model.StatusChangedAt.HasValue? Model.StatusChangedAt.Value.ToString("MMM dd, yyyy hh:mm tt"): "N/A")
+
             </div>
         </div>
 
@@ -101,7 +210,6 @@
                 <span class="ticket-detail-label">Subcategory</span>: @Model.Subcategory?.SubcategoryName
             </div>
         </div>
-
         <div class="row">
             <div class="col-md-6 mb-3">
                 <span class="ticket-detail-label">Priority</span>: @Model.Priority?.PriorityName
@@ -127,11 +235,62 @@
             </div>
         </div>
 
-        <div class="btn-group-custom">
-           @*  <a class="btn btn-primary btn-custom" asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> *@
-            <a class="btn btn-outline-secondary ms-2 btn-custom" asp-controller="Technicians" asp-action="MyTickets">Back to List</a>
+        <!-- Escalation Section - Show if ticket was escalated -->
+        @if (wasEscalated)
+        {
+            <div class="escalation-section">
+                <h5 class="section-title"><i class="fas fa-user-shield me-2"></i>Escalation Details</h5>
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <span class="ticket-detail-label">Senior Technician Response</span>:
+                        <div class="mt-2 p-3 bg-white rounded">@Model.SeniorTechnicianResponse</div>
+                    </div>
+                </div>
+            </div>
+        }
 
+        <!-- Resolution Section - Only show if ticket is resolved -->
+        @if (isResolved)
+        {
+            <div class="resolution-section">
+                <h5 class="section-title"><i class="fas fa-check-circle me-2"></i>Resolution Details</h5>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <span class="ticket-detail-label">Resolved By</span>: @Model.ClosedByTechnician?.FullName
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <span class="ticket-detail-label">Resolved At</span>: @Model.ClosedDate?.ToString("MMM dd, yyyy hh:mm tt")
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <span class="ticket-detail-label">Resolution Notes</span>
+                        <div class="mt-2 p-3 bg-white rounded">@Model.Resolution</div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="btn-group-custom">
+            <a class="btn btn-outline-secondary ms-2 btn-custom" asp-controller="Home" asp-action="Index">Back to List</a>
+@* 
+            @if (isTechnician || isTechnicalSupport)
+            {
+                @if (!isResolved)
+                {
+                    <a class="btn btn-primary ms-2 btn-custom" asp-controller="Ticket" asp-action="Resolution" asp-route-id="@Model.Id">
+                        <i class="fas fa-check-circle me-1"></i> Resolve Ticket
+                    </a>
+                }
+                else
+                {
+                    <a class="btn btn-info ms-2 btn-custom" asp-controller="Ticket" asp-action="Resolution" asp-route-id="@Model.Id">
+                        <i class="fas fa-eye me-1"></i> View Resolution
+                    </a>
+                }
+            } *@
         </div>
     </div>
 </div>
-

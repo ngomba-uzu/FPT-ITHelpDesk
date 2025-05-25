@@ -1,4 +1,6 @@
 ﻿@model IEnumerable<ITHelpDesk.Models.Department>
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
 @{
     Layout = "_Layout";
     ViewData["Title"] = "Departments";
@@ -44,9 +46,10 @@
             }
 
         .btn-primary {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
+            background-color: #007bff;
+            border-color: #007bff;
         }
+
 
         .btn-danger {
             background-color: var(--danger-color);

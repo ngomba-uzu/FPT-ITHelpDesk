@@ -33,9 +33,9 @@ namespace ITHelpDesk.Models
         [DisplayName("Full Name")]
         public string FullName { get; set; } = string.Empty;
 
-        public string Status { get; set; }
-        public int TechnicianGroupId { get; set; }
+        public byte[] ProfilePicture { get; set; }
+        public string ProfilePictureContentType { get; set; }
 
-       
+
     }
 }

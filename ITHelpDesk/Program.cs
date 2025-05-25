@@ -1,10 +1,9 @@
-﻿using ITHelpDesk.Data;
+using ITHelpDesk.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using ITHelpDesk.Models;
 using ITHelpDesk.Services;
 using Microsoft.AspNetCore.Identity.UI.Services;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,22 +13,24 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
+// Keep IdentityUser but configure to allow duplicate emails
 builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 {
     options.SignIn.RequireConfirmedAccount = true;
-    options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+ ";  // Allow spaces
-}).AddRoles<IdentityRole>() // 👈 This line enables role support
-    .AddEntityFrameworkStores<ApplicationDbContext>();
+    options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+ ";
+    options.User.RequireUniqueEmail = false; // This allows duplicate emails
+})
+.AddRoles<IdentityRole>() // Enable role support
+.AddEntityFrameworkStores<ApplicationDbContext>();
 
 builder.Services.AddControllersWithViews();
 
+// Email services
 builder.Services.AddTransient<MailKitEmailSender>();
 builder.Services.AddTransient<IEmailSender, EmailSender>();
 builder.Services.AddScoped<NotificationService>();
 
-
-
-
+// MailKit configuration
 builder.Services.Configure<MailKitEmailSenderOptions>(options =>
 {
     options.Host_Address = builder.Configuration["ExternalProviders:MailKit:SMTP:Address"];
@@ -43,27 +44,36 @@ builder.Services.Configure<MailKitEmailSenderOptions>(options =>
 // Configure the authentication cookie settings
 builder.Services.ConfigureApplicationCookie(options =>
 {
-    options.LoginPath = "/Identity/Account/Login";  // Redirect unauthenticated users here
-    options.LogoutPath = "/Identity/Account/Logout";  // Handle logout
-    options.AccessDeniedPath = "/Identity/Account/AccessDenied";  // Handle access denied
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;  // Only send cookies over HTTPS
+    options.LoginPath = "/Identity/Account/Login";
+    options.LogoutPath = "/Identity/Account/Logout";
+    options.AccessDeniedPath = "/Identity/Account/AccessDenied";
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     options.Cookie.SameSite = SameSiteMode.Lax;
 });
+
 var app = builder.Build();
-// 🔽 Role Seeding Logic
+
+// Role Seeding Logic
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-    string[] roles = { "Technical Support", "Technician", "User" };
-
-    foreach (var role in roles)
+    try
     {
-        var roleExists = await roleManager.RoleExistsAsync(role);
-        if (!roleExists)
+        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+        string[] roles = { "Technical Support", "Technician", "User", "Management" };
+
+        foreach (var role in roles)
         {
-            await roleManager.CreateAsync(new IdentityRole(role));
+            if (!await roleManager.RoleExistsAsync(role))
+            {
+                await roleManager.CreateAsync(new IdentityRole(role));
+            }
         }
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while seeding roles.");
     }
 }
 
@@ -75,7 +85,6 @@ if (app.Environment.IsDevelopment())
 else
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -86,7 +95,6 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
-
 
 app.MapControllerRoute(
     name: "default",

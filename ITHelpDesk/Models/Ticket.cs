@@ -1,6 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+using ITHelpDesk.Areas.Utility;
+
 
 namespace ITHelpDesk.Models
 {
@@ -74,6 +76,9 @@ namespace ITHelpDesk.Models
         [ValidateNever]
         public string? ReassignReason { get; set; }
 
+        [Display(Name = "Escalated At")]
+        public DateTime? EscalatedDate { get; set; }
+
         [ValidateNever]
         public string? EscalateReason { get; set; }
         public int? SeniorTechnicianId { get; set; } // who the ticket was escalated to
@@ -81,6 +86,29 @@ namespace ITHelpDesk.Models
         public int? ClosedByTechnicianId { get; set; }
         [ValidateNever]
         public Technician ClosedByTechnician { get; set; }
+
+        [ValidateNever]
+        public bool IsAutoEscalated { get; set; } = false;
+
+        // Technician-only fields
+
+        [Display(Name = "Mode of Request")]
+        public RequestMode? Mode { get; set; }
+        // e.g., "Email", "Call"
+
+        [Display(Name = "Assign To")]
+        public int? ManuallyAssignedToId { get; set; } // optional manual assignment
+
+        [Display(Name = "Email to Notify")]
+        [EmailAddress]
+        public string? EmailToNotify { get; set; }
+
+        [Display(Name = "Organization")]
+        public string? Organization { get; set; }
+
+        [ValidateNever]
+        public Technician? ManuallyAssignedTo { get; set; } // navigation property
+
         public SeniorTechnician? SeniorTechnician { get; set; }
         [ValidateNever]
         public Technician AssignedTechnician { get; set; }

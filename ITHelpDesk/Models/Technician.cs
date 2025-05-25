@@ -30,7 +30,8 @@ namespace ITHelpDesk.Models
         [ValidateNever]
         public List<TechnicianPort> TechnicianPorts { get; set; } = new List<TechnicianPort>();
 
-       
+        [ValidateNever]
+        public List<Ticket> Tickets { get; set; } = new List<Ticket>(); 
 
     }
 

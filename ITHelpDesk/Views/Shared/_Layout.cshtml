@@ -1,4 +1,12 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Identity
+@using ITHelpDesk.Models
+@using ITHelpDesk.Data
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject ApplicationDbContext _context
+
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -194,9 +202,24 @@
             position: relative;
         }
 
+        .navbar .dropdown-toggle {
+            display: flex;
+            align-items: center;
+            padding: 0.25rem 0.5rem;
+            color: white !important;
+        }
+
+        .avatar-initials {
+            font-weight: bold;
+            font-size: 14px;
+        }
+
         .notification-bell {
-            position: relative;
-            margin-right: 15px;
+            color: white;
+            font-size: 1.25rem;
+            margin-left: 15px;
+            display: flex;
+            align-items: center;
         }
 
         .navbar-badge {
@@ -211,7 +234,21 @@
             text-align: center;
             border-radius: 50%;
             background-color: #dc3545;
-            transition: all 0.3s ease;
+            color: white;
+        }
+
+        /* Dropdown menu styling */
+        .dropdown-menu {
+            border: none;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+
+        .dropdown-item {
+            padding: 0.5rem 1.5rem;
+        }
+
+        .dropdown-divider {
+            margin: 0.25rem 0;
         }
 
         .dropdown-menu-lg {
@@ -481,25 +518,62 @@
         <button class="toggle-sidebar-btn" id="toggleSidebar">
             <i class="fas fa-bars"></i>
         </button>
-        <div class="system-name">ITHelpDesk</div>
+        <div class="system-name">Service Desk</div>
 
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm mb-3">
             <div class="container-fluid">
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav ms-auto">
-                        @if (roles.Contains("User") || roles.Contains("Technician"))
+
+                        @if (SignInManager.IsSignedIn(User))
                         {
-                            <li class="nav-item">
-                                <div class="user-notification-container">
+                            
+                            @if (roles.Contains("User") || roles.Contains("Technician"))
+                            {
+                                <li class="nav-item">
                                     @await Component.InvokeAsync("NotificationBell")
-                                    <partial name="_LoginPartial" />
-                                </div>
+                                </li>
+                            }
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    @{
+                                        var applicationUser = await UserManager.GetUserAsync(User) as ApplicationUser;
+                                        var fullName = $"{applicationUser?.FirstName} {applicationUser?.LastName}";
+                                        var hasProfilePicture = applicationUser?.ProfilePicture != null;
+                                    }
+
+                                    @if (hasProfilePicture)
+                                    {
+                                        <img src="data:@applicationUser.ProfilePictureContentType;base64,@Convert.ToBase64String(applicationUser.ProfilePicture)"
+                                             alt="Profile Picture"
+                                             class="rounded-circle me-2"
+                                             style="width: 32px; height: 32px; object-fit: cover;" />
+                                    }
+                                    else
+                                    {
+                                        <div class="avatar-initials rounded-circle me-2 d-flex align-items-center justify-content-center"
+                                             style="width: 32px; height: 32px; background-color: #0d6efd; color: white;">
+                                            @(!string.IsNullOrEmpty(fullName) ? fullName[0].ToString().ToUpper() : "U")
+                                        </div>
+                                    }
+                                    <span class="d-none d-md-inline">@fullName</span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                    <li><a class="dropdown-item" asp-area="Identity" asp-page="/Account/Manage/Index">Profile</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
+                                            <button type="submit" class="dropdown-item">Logout</button>
+                                        </form>
+                                    </li>
+                                </ul>
                             </li>
+
                         }
                         else
                         {
                             <li class="nav-item">
-                                <partial name="_LoginPartial" />
+                                <a class="nav-link" asp-area="Identity" asp-page="/Account/Login">Login</a>
                             </li>
                         }
                     </ul>
@@ -643,7 +717,7 @@
                     $notificationList.html(`
                         <div class="text-center py-3">
                             No notifications found
-                            ${debugMode ? '<div class="small text-muted">/Notifications/GetNotifications returned empty array</div>' : ''}
+                           
                         </div>
                     `);
                 }

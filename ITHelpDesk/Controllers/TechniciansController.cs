@@ -14,6 +14,8 @@ using ITHelpDesk.Models.ViewModels;
 using ITHelpDesk.Services;
 using Microsoft.AspNetCore.Authorization;
 using Newtonsoft.Json;
+using MailKit.Search;
+using System.Text;
 
 namespace ITHelpDesk.Controllers
 {
@@ -282,8 +284,8 @@ namespace ITHelpDesk.Controllers
             return _context.Technicians.Any(e => e.Id == id);
         }
 
-       
-        public async Task<IActionResult> MyTickets()
+
+        public async Task<IActionResult> MyTickets(string searchTerm)
         {
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
@@ -291,7 +293,6 @@ namespace ITHelpDesk.Controllers
                 return Unauthorized();
             }
 
-            // Get technician by UserId instead of email
             var technician = await _context.Technicians
                 .FirstOrDefaultAsync(t => t.UserId == user.Id);
 
@@ -300,56 +301,136 @@ namespace ITHelpDesk.Controllers
                 return Unauthorized();
             }
 
-            // Rest of your existing code
-            var tickets = await _context.Tickets
-         .Include(t => t.Category)
-         .Include(t => t.Subcategory)
-         .Include(t => t.Priority)
-         .Include(t => t.Status)
-         .Include(t => t.AssignedTechnician)
-         .Where(t => t.AssignedTechnicianId == technician.Id && t.Status.StatusName == "Assigned")
-         .ToListAsync();
+            IQueryable<Ticket> ticketsQuery = _context.Tickets
+                .Include(t => t.Category)
+                .Include(t => t.Subcategory)
+                .Include(t => t.Priority)
+                .Include(t => t.Status)
+                .Include(t => t.AssignedTechnician)
+                .Where(t => t.AssignedTechnicianId == technician.Id && t.Status.StatusName == "Assigned");
+
+            if (!string.IsNullOrEmpty(searchTerm))
+            {
+                ticketsQuery = ticketsQuery.Where(t =>
+                    t.TicketNumber.Contains(searchTerm) ||
+                    t.RequesterName.Contains(searchTerm) ||
+                    t.Email.Contains(searchTerm) ||
+                    t.Subcategory.SubcategoryName.Contains(searchTerm)
+                );
+            }
+
+            var tickets = await ticketsQuery.ToListAsync();
 
             ViewBag.Priorities = await _context.Priorities.ToListAsync();
             ViewBag.Technicians = await _context.Technicians.ToListAsync();
+            ViewData["CurrentFilter"] = searchTerm;
 
             return View(tickets);
         }
+
 
 
 
 
 
         // Shows unassigned tickets relevant to this technician’s group
-        public async Task<IActionResult> UnassignedTickets()
+        public async Task<IActionResult> UnassignedTickets(string searchTerm)
         {
-            // Get current technician by email
+            var currentUserId = _userManager.GetUserId(User); // This is ApplicationUser.Id
+
             var technician = await _context.Technicians
-                .FirstOrDefaultAsync(t => t.Email == User.Identity.Name);
+                .FirstOrDefaultAsync(t => t.UserId == currentUserId);
 
             if (technician == null)
             {
                 return NotFound("Technician not found.");
             }
 
-            // Get subcategories linked to technician's group
             var subcategoryIds = await _context.Subcategories
                 .Where(s => s.TechnicianGroupId == technician.TechnicianGroupId)
                 .Select(s => s.Id)
                 .ToListAsync();
 
-            // Get unassigned tickets linked to those subcategories
-            var tickets = await _context.Tickets
+            var twoMinutesAgo = DateTime.Now.AddMinutes(-2);
+
+            // Load unassigned, high-priority tickets that are older than 2 minutes and not escalated
+            var escalatedTickets = await _context.Tickets
+                .Where(t => t.AssignedTechnicianId == null &&
+                            t.CreatedAt <= twoMinutesAgo &&
+                            t.Priority.PriorityName.ToLower() == "high" &&
+                            !t.IsAutoEscalated)
+                .Include(t => t.Priority)
+                .Include(t => t.Subcategory)
+                    .ThenInclude(sc => sc.TechnicianGroup)
+                        .ThenInclude(tg => tg.SeniorTechnician)
+                .ToListAsync();
+
+
+            // Group tickets by Senior Technician
+            var groupedTickets = escalatedTickets
+                .Where(t => t.Subcategory?.TechnicianGroup?.SeniorTechnician != null)
+                .GroupBy(t => t.Subcategory.TechnicianGroup.SeniorTechnician);
+
+            foreach (var group in groupedTickets)
+            {
+                var senior = group.Key;
+
+                var message = new StringBuilder();
+                message.AppendLine($"Dear {senior.FullName},");
+                message.AppendLine("<br/><br/>The following high-priority ticket(s) have not been attended for over an hour:");
+
+                foreach (var ticket in group)
+                {
+                    message.AppendLine($"<br/>- Ticket {ticket.TicketNumber}, Created: {ticket.CreatedAt:g}");
+                }
+
+                message.AppendLine("<br/><br/>Please take necessary action.");
+                message.AppendLine("<br/><br/>Regards,<br/>Ticketing System");
+
+                await _emailSender.SendEmailAsync(senior.Email, "Escalation: Unassigned High-Priority Tickets", message.ToString());
+
+                // Mark these tickets as auto escalated
+                foreach (var ticket in group)
+                {
+                    ticket.IsAutoEscalated = true;
+                }
+            }
+
+            if (escalatedTickets.Any())
+            {
+                await _context.SaveChangesAsync();
+            }
+
+            // Normal ticket loading
+            IQueryable<Ticket> ticketsQuery = _context.Tickets
                 .Where(t => t.AssignedTechnicianId == null && subcategoryIds.Contains(t.SubcategoryId))
                 .Include(t => t.Subcategory)
                 .Include(t => t.Department)
                 .Include(t => t.Priority)
                 .Include(t => t.Status)
-                .Include(t => t.Port)
-                .ToListAsync();
+                .Include(t => t.Port);
+
+            if (!string.IsNullOrEmpty(searchTerm))
+            {
+                ticketsQuery = ticketsQuery.Where(t =>
+                    t.TicketNumber.Contains(searchTerm) ||
+                    t.RequesterName.Contains(searchTerm) ||
+                    t.Email.Contains(searchTerm) ||
+                    t.Department.DepartmentName.Contains(searchTerm) ||
+                    t.Subcategory.SubcategoryName.Contains(searchTerm)
+                );
+            }
+
+            var tickets = await ticketsQuery.ToListAsync();
+
+            ViewData["CurrentFilter"] = searchTerm;
 
             return View(tickets);
         }
+
+
+
+
 
 
         // POST: AssignToMe
@@ -364,8 +445,9 @@ namespace ITHelpDesk.Controllers
             }
 
             // Get the currently logged-in technician based on email
+            var currentUserId = _userManager.GetUserId(User); // ApplicationUser.Id
             var technician = await _context.Technicians
-                .FirstOrDefaultAsync(t => t.Email == User.Identity.Name);
+                .FirstOrDefaultAsync(t => t.UserId == currentUserId);
 
             if (technician == null)
             {
@@ -413,7 +495,6 @@ namespace ITHelpDesk.Controllers
                 return NotFound();
             }
 
-            // Only block if status is still Closed
             if (ticket.Status.StatusName == "Closed")
             {
                 return RedirectToAction("ClosedTickets");
@@ -431,7 +512,6 @@ namespace ITHelpDesk.Controllers
             return View(model);
         }
 
-
         // POST: Technicians/Resolution
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -445,7 +525,7 @@ namespace ITHelpDesk.Controllers
 
                 ticket.Resolution = model.Resolution;
 
-                // Save the uploaded file if exists
+                // Save uploaded file if exists
                 if (model.Document != null && model.Document.Length > 0)
                 {
                     var uploadsFolder = Path.Combine(_env.WebRootPath, "documents");
@@ -473,20 +553,25 @@ namespace ITHelpDesk.Controllers
                 ticket.ClosedDate = DateTime.Now;
                 ticket.IsResolutionAcknowledged = false;
 
-                // ✅ Get and assign technician
+                // ✅ Assign technician by UserId instead of email
+                var userId = _userManager.GetUserId(User);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized();
+                }
+
                 var technician = await _context.Technicians
-                    .FirstOrDefaultAsync(t => t.Email == User.Identity.Name);
+                    .FirstOrDefaultAsync(t => t.UserId == userId);
                 if (technician == null)
                 {
                     return Unauthorized();
                 }
+
                 ticket.ClosedByTechnicianId = technician.Id;
-
-
                 _context.Update(ticket);
                 await _context.SaveChangesAsync();
 
-                // Send acknowledgment email
+                // Prepare acknowledgment email
                 var subject = $"Ticket {ticket.TicketNumber} Closed - Was it resolved?";
                 var body = $@"
             <p>Dear {ticket.RequesterName},</p>
@@ -498,20 +583,31 @@ namespace ITHelpDesk.Controllers
             </p>
             <p>Thank you,<br/>IT HelpDesk Team</p>";
 
-                await _emailSender.SendEmailAsync(ticket.Email, subject, body);
+                // ✅ Always send to ticket.Email (if not technician)
+                if (ticket.Email != User.Identity.Name)
+                {
+                    await _emailSender.SendEmailAsync(ticket.Email, subject, body);
+                }
+
+                // ✅ If ticket was created by a user, and their email is different from ticket.Email and not the technician
+                if (ticket.CreatedBy != null)
+                {
+                    var user = await _context.Users.FindAsync(ticket.CreatedBy);
+                    if (user != null && user.Email != ticket.Email && user.Email != User.Identity.Name)
+                    {
+                        await _emailSender.SendEmailAsync(user.Email, subject, body);
+                    }
+                }
+
 
                 return RedirectToAction("ClosedTickets");
             }
 
-            // Log errors
-            foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
-            {
-                Console.WriteLine(error.ErrorMessage);
-            }
-
+            // Show validation errors if form failed
             model.StatusList = await _context.Status.ToListAsync();
             return View(model);
         }
+
 
         // Acknowledge via email
         [HttpGet]
@@ -549,14 +645,16 @@ namespace ITHelpDesk.Controllers
 
 
         // GET: Technicians/ClosedTickets
-        public async Task<IActionResult> ClosedTickets()
+        public async Task<IActionResult> ClosedTickets(string searchTerm)
         {
+            var currentUserId = _userManager.GetUserId(User); // ApplicationUser.Id
             var technician = await _context.Technicians
-                .FirstOrDefaultAsync(t => t.Email == User.Identity.Name);
+                .FirstOrDefaultAsync(t => t.UserId == currentUserId);
+
 
             if (technician == null)
             {
-                return Unauthorized(); // or redirect with error
+                return Unauthorized();
             }
 
             var closedStatusIds = await _context.Status
@@ -564,23 +662,48 @@ namespace ITHelpDesk.Controllers
                 .Select(s => s.Id)
                 .ToListAsync();
 
-            var closedTickets = await _context.Tickets
+            IQueryable<Ticket> ticketsQuery = _context.Tickets
                 .Include(t => t.Status)
                 .Include(t => t.AssignedTechnician)
-                .Where(t => closedStatusIds.Contains(t.StatusId) && t.AssignedTechnicianId == technician.Id)
-                .ToListAsync();
+                .Include(t => t.Subcategory)
+                .Where(t => closedStatusIds.Contains(t.StatusId) && t.AssignedTechnicianId == technician.Id);
 
-            foreach (var ticket in closedTickets)
+            if (!string.IsNullOrEmpty(searchTerm))
             {
-                await _notificationService.CreateUserNotification(
-                    ticket.CreatedBy,
-                    $"Your ticket #{ticket.TicketNumber} has been closed",
-                    ticket.Id
+                ticketsQuery = ticketsQuery.Where(t =>
+                    t.TicketNumber.Contains(searchTerm) ||
+                    t.RequesterName.Contains(searchTerm) ||
+                    t.Email.Contains(searchTerm) ||
+                    t.Subcategory.SubcategoryName.Contains(searchTerm)
                 );
             }
 
+            var closedTickets = await ticketsQuery.ToListAsync();
+
+            foreach (var ticket in closedTickets)
+            {
+                bool notificationExists = await _context.Notifications.AnyAsync(n =>
+                    n.TicketId == ticket.Id &&
+                    n.UserId == ticket.CreatedBy &&
+                    n.Message.Contains("has been closed")
+                );
+
+                if (!notificationExists)
+                {
+                    await _notificationService.CreateUserNotification(
+                        ticket.CreatedBy,
+                        $"Your ticket #{ticket.TicketNumber} has been closed",
+                        ticket.Id
+                    );
+                }
+            }
+
+
+            ViewData["CurrentFilter"] = searchTerm;
+
             return View(closedTickets);
         }
+
 
 
 
@@ -625,10 +748,14 @@ namespace ITHelpDesk.Controllers
                 .FirstOrDefaultAsync(t => t.Id == TicketId);
             if (ticket == null) return NotFound();
 
-            // Get the current (reassigning) technician
+            // ✅ Get current (reassigning) technician using UserId instead of Email
+            var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
             var currentTechnician = await _context.Technicians
-                .FirstOrDefaultAsync(t => t.Email == User.Identity.Name);
+                .FirstOrDefaultAsync(t => t.UserId == userId);
             if (currentTechnician == null) return Unauthorized();
+
 
             // Get the new assigned technician
             var newTechnician = await _context.Technicians.FindAsync(TechnicianId);
@@ -717,6 +844,7 @@ namespace ITHelpDesk.Controllers
             // Update ticket
             ticket.SeniorTechnicianId = model.SeniorTechnicianId;
             ticket.EscalateReason = model.EscalateReason;
+            ticket.EscalatedDate = DateTime.UtcNow; 
 
 
             _context.Update(ticket);
@@ -778,6 +906,7 @@ namespace ITHelpDesk.Controllers
 
             await _emailSender.SendEmailAsync(ticket.Email, subject, body);
 
+            TempData["PriorityChanged"] = $"Priority for ticket {ticket.TicketNumber} has been changed to {newPriority.PriorityName}.";
             return RedirectToAction("MyTickets");
         }
 

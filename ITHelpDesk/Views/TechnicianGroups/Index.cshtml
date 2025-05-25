@@ -14,7 +14,7 @@
     <thead>
         <tr>
             <th>Group Name</th>
-            <th>Technicians</th>
+            <th>Senior Technician</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -23,21 +23,7 @@
         {
             <tr>
                 <td>@group.GroupName</td>
-                <td>
-                    @if (group.Technicians != null && group.Technicians.Any())
-                    {
-                        <ul>
-                            @foreach (var tech in group.Technicians)
-                            {
-                                <li>@tech.FullName</li>
-                            }
-                        </ul>
-                    }
-                    else
-                    {
-                        <em>No technicians</em>
-                    }
-                </td>
+                <td>@group.SeniorTechnician?.FullName</td>
                 <td>
                     <a asp-action="Edit" asp-route-id="@group.Id">Edit</a> |
                     <a asp-action="Details" asp-route-id="@group.Id">Details</a> |

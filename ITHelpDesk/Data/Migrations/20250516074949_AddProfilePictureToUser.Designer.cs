@@ -4,6 +4,7 @@ using ITHelpDesk.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ITHelpDesk.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250516074949_AddProfilePictureToUser")]
+    partial class AddProfilePictureToUser
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -37,7 +40,7 @@ namespace ITHelpDesk.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categories", (string)null);
+                    b.ToTable("Categories");
                 });
 
             modelBuilder.Entity("ITHelpDesk.Models.Department", b =>
@@ -55,7 +58,7 @@ namespace ITHelpDesk.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Departments", (string)null);
+                    b.ToTable("Departments");
                 });
 
             modelBuilder.Entity("ITHelpDesk.Models.Notification", b =>
@@ -93,7 +96,7 @@ namespace ITHelpDesk.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Notifications", (string)null);
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("ITHelpDesk.Models.Port", b =>
@@ -111,7 +114,7 @@ namespace ITHelpDesk.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Ports", (string)null);
+                    b.ToTable("Ports");
                 });
 
             modelBuilder.Entity("ITHelpDesk.Models.Priority", b =>
@@ -129,7 +132,7 @@ namespace ITHelpDesk.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Priorities", (string)null);
+                    b.ToTable("Priorities");
                 });
 
             modelBuilder.Entity("ITHelpDesk.Models.SeniorTechnician", b =>
@@ -150,7 +153,7 @@ namespace ITHelpDesk.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SeniorTechnicians", (string)null);
+                    b.ToTable("SeniorTechnicians");
                 });
 
             modelBuilder.Entity("ITHelpDesk.Models.Status", b =>
@@ -170,7 +173,7 @@ namespace ITHelpDesk.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Status", (string)null);
+                    b.ToTable("Status");
                 });
 
             modelBuilder.Entity("ITHelpDesk.Models.Subcategory", b =>
@@ -197,7 +200,7 @@ namespace ITHelpDesk.Data.Migrations
 
                     b.HasIndex("TechnicianGroupId");
 
-                    b.ToTable("Subcategories", (string)null);
+                    b.ToTable("Subcategories");
                 });
 
             modelBuilder.Entity("ITHelpDesk.Models.Technician", b =>
@@ -229,7 +232,7 @@ namespace ITHelpDesk.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Technicians", (string)null);
+                    b.ToTable("Technicians");
                 });
 
             modelBuilder.Entity("ITHelpDesk.Models.TechnicianGroup", b =>
@@ -244,14 +247,9 @@ namespace ITHelpDesk.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("SeniorTechnicianId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("SeniorTechnicianId");
-
-                    b.ToTable("TechnicianGroups", (string)null);
+                    b.ToTable("TechnicianGroups");
                 });
 
             modelBuilder.Entity("ITHelpDesk.Models.TechnicianPort", b =>
@@ -274,7 +272,7 @@ namespace ITHelpDesk.Data.Migrations
 
                     b.HasIndex("TechnicianId");
 
-                    b.ToTable("TechnicianPorts", (string)null);
+                    b.ToTable("TechnicianPorts");
                 });
 
             modelBuilder.Entity("ITHelpDesk.Models.Ticket", b =>
@@ -315,37 +313,16 @@ namespace ITHelpDesk.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("EmailToNotify")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("EscalateReason")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("EscalatedDate")
-                        .HasColumnType("datetime2");
 
                     b.Property<string>("FileName")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("IsAutoEscalated")
-                        .HasColumnType("bit");
-
                     b.Property<bool?>("IsResolutionAcknowledged")
                         .HasColumnType("bit");
 
-                    b.Property<int?>("ManuallyAssignedToId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Mode")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Organization")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int>("PortId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("PortId1")
                         .HasColumnType("int");
 
                     b.Property<int>("PriorityId")
@@ -396,11 +373,7 @@ namespace ITHelpDesk.Data.Migrations
 
                     b.HasIndex("DepartmentId");
 
-                    b.HasIndex("ManuallyAssignedToId");
-
                     b.HasIndex("PortId");
-
-                    b.HasIndex("PortId1");
 
                     b.HasIndex("PriorityId");
 
@@ -412,7 +385,7 @@ namespace ITHelpDesk.Data.Migrations
 
                     b.HasIndex("TechnicianGroupId");
 
-                    b.ToTable("Tickets", (string)null);
+                    b.ToTable("Tickets");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -725,17 +698,6 @@ namespace ITHelpDesk.Data.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("ITHelpDesk.Models.TechnicianGroup", b =>
-                {
-                    b.HasOne("ITHelpDesk.Models.SeniorTechnician", "SeniorTechnician")
-                        .WithMany()
-                        .HasForeignKey("SeniorTechnicianId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("SeniorTechnician");
-                });
-
             modelBuilder.Entity("ITHelpDesk.Models.TechnicianPort", b =>
                 {
                     b.HasOne("ITHelpDesk.Models.Port", "Port")
@@ -777,19 +739,11 @@ namespace ITHelpDesk.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("ITHelpDesk.Models.Technician", "ManuallyAssignedTo")
-                        .WithMany()
-                        .HasForeignKey("ManuallyAssignedToId");
-
                     b.HasOne("ITHelpDesk.Models.Port", "Port")
                         .WithMany()
                         .HasForeignKey("PortId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("ITHelpDesk.Models.Port", null)
-                        .WithMany("Tickets")
-                        .HasForeignKey("PortId1");
 
                     b.HasOne("ITHelpDesk.Models.Priority", "Priority")
                         .WithMany()
@@ -826,8 +780,6 @@ namespace ITHelpDesk.Data.Migrations
                     b.Navigation("ClosedByTechnician");
 
                     b.Navigation("Department");
-
-                    b.Navigation("ManuallyAssignedTo");
 
                     b.Navigation("Port");
 
@@ -920,8 +872,6 @@ namespace ITHelpDesk.Data.Migrations
             modelBuilder.Entity("ITHelpDesk.Models.Port", b =>
                 {
                     b.Navigation("TechnicianPorts");
-
-                    b.Navigation("Tickets");
                 });
 
             modelBuilder.Entity("ITHelpDesk.Models.Technician", b =>
