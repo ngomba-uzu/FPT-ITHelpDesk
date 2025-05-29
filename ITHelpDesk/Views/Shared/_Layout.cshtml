@@ -497,14 +497,22 @@
                     </li>
                 }
 
-                <!-- My Tickets for Technician or Technical Support -->
-                @if (roles.Contains("Technician") || roles.Contains("Technical Support"))
+                <!-- My Tickets for Technician -->
+                @if (roles.Contains("Technician"))
                 {
                     <li class="menu-item">
                         <a asp-controller="Technicians" asp-action="MyTickets">
                             <i class="fas fa-list menu-icon"></i>
-                            <span class="menu-text">My Tickets</span>
-                            <span class="tooltip-text">My Tickets</span>
+                            <span class="menu-text">Manage Tickets</span>
+                            <span class="tooltip-text">Manage Tickets</span>
+                        </a>
+                    </li>
+
+                    <li class="menu-item">
+                        <a asp-controller="Tickets" asp-action="PortTickets">
+                            <i class="fas fa-network-wired menu-icon"></i> <!-- Choose any icon you like -->
+                            <span class="menu-text">Port Tickets</span>
+                            <span class="tooltip-text">View tickets by Port</span>
                         </a>
                     </li>
                 }

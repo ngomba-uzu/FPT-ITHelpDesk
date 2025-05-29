@@ -427,8 +427,9 @@
                                     <i class="fas fa-ellipsis-v"></i>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">
-                                    <li><a class="dropdown-item" href="#">Export CSV</a></li>
-                                    <li><a class="dropdown-item" href="#">View All Ports</a></li>
+                               @*      <li><a class="dropdown-item" href="#">Export CSV</a></li> *@
+                                    <li><a class="dropdown-item" href="@Url.Action("PortTickets", "Tickets")">View All Ports</a></li>
+
                                 </ul>
                             </div>
                         </div>
@@ -527,6 +528,10 @@
                             <div class="row g-3">
                                 @foreach (var port in ViewBag.Ports)
                                 {
+                                    var techs = ((IEnumerable<dynamic>)port.Technicians).ToList();
+                                    var topTechs = techs.Take(3).ToList();
+                                    var hasMore = techs.Count > 3;
+
                                     <div class="col-12">
                                         <div class="card card-port border">
                                             <div class="card-body">
@@ -536,10 +541,11 @@
                                                         @port.Technicians.Count techs
                                                     </span>
                                                 </div>
+
                                                 <div class="d-flex flex-wrap gap-2">
-                                                    @if (port.Technicians != null && port.Technicians.Count > 0)
+                                                    @if (topTechs.Any())
                                                     {
-                                                        @foreach (var tech in port.Technicians)
+                                                        @foreach (var tech in topTechs)
                                                         {
                                                             <div class="d-flex align-items-center bg-light rounded-pill p-2">
                                                                 <div class="avatar bg-primary bg-opacity-10 text-primary rounded-circle me-2">
@@ -549,6 +555,13 @@
                                                                     <div class="fw-small">@tech.Name</div>
                                                                     <small class="text-muted">@tech.TicketsHandled tickets</small>
                                                                 </div>
+                                                            </div>
+                                                        }
+
+                                                        @if (hasMore)
+                                                        {
+                                                            <div class="d-flex align-items-center">
+                                                                <a href="/Port/Technicians/@port.PortId" class="text-muted">+ More</a>
                                                             </div>
                                                         }
                                                     }
@@ -568,25 +581,78 @@
             </div>
         </div>
     }
-    else if (role == "Technical Support")
+    @if (role == "Technical Support")
     {
         <div class="container-fluid px-4">
-            <h2 class="mb-4"><i class="fas fa-tools me-2"></i>Technical Support Dashboard</h2>
+            <!-- Dashboard Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-0"><i class="fas fa-headset me-2 text-primary"></i>Dashboard</h2>
+                    <p class="text-muted mb-0">Manage ports, technicians, and ticket escalations</p>
+                </div>
+                <div class="dashboard-summary">
+                    <div class="stat-card bg-primary text-white">
+                        <i class="fas fa-anchor"></i>
+                        <span class="count">@ViewBag.Ports.Count</span>
+                        <span class="label">Active Ports</span>
+                    </div>
+                    <div class="stat-card bg-success text-white">
+                        <i class="fas fa-users-cog"></i>
+                        <span class="count">@ViewBag.Technicians.Count</span>
+                        <span class="label">Technicians</span>
+                    </div>
+                    <div class="stat-card bg-warning text-dark">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span class="count">@ViewBag.EscalatedTicketsCount</span>
+                        <span class="label">Escalations</span>
+                    </div>
+                </div>
+            </div>
 
             <!-- Management Tabs -->
-            <nav>
-                <div class="nav nav-tabs" id="nav-tab" role="tablist">
-                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#nav-ports" type="button">
-                        <i class="fas fa-anchor me-2"></i>Port Management
+            <nav class="mb-3">
+                <div class="nav nav-tabs" id="nav-tab" role="tablist" style="font-size: 1.05rem;">
+                    <!-- Port Management Tab -->
+                    <button class="nav-link active d-flex align-items-center py-3 px-4"
+                            data-bs-toggle="tab"
+                            data-bs-target="#nav-ports"
+                            type="button">
+                        <i class="fas fa-anchor me-2 fs-5"></i>
+                        <span class="fw-medium">Port Management</span>
                     </button>
-                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#nav-categories" type="button">
-                        <i class="fas fa-sitemap me-2"></i>Category Configuration
+
+                    <!-- Technician Management Tab -->
+                    <button class="nav-link d-flex align-items-center py-3 px-4"
+                            data-bs-toggle="tab"
+                            data-bs-target="#nav-technicians"
+                            type="button">
+                        <i class="fas fa-users-cog me-2 fs-5"></i>
+                        <span class="fw-medium">Technician Management</span>
                     </button>
-                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#nav-technicians" type="button">
-                        <i class="fas fa-users-cog me-2"></i>Technician Allocation
+
+                    <!-- Escalations Tab -->
+                    <button class="nav-link d-flex align-items-center py-3 px-4 position-relative"
+                            data-bs-toggle="tab"
+                            data-bs-target="#nav-escalations"
+                            type="button">
+                        <i class="fas fa-exclamation-triangle me-2 fs-5"></i>
+                        <span class="fw-medium">Escalations</span>
+                        @if (ViewBag.EscalatedTicketsCount > 0)
+                        {
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                @ViewBag.EscalatedTicketsCount
+                                <span class="visually-hidden">escalated tickets</span>
+                            </span>
+                        }
                     </button>
-                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#nav-escalations" type="button">
-                        <i class="fas fa-exclamation-triangle me-2"></i>Escalations (@ViewBag.EscalatedTicketsCount)
+
+                    <!-- Category Configuration Tab -->
+                    <button class="nav-link d-flex align-items-center py-3 px-4"
+                            data-bs-toggle="tab"
+                            data-bs-target="#nav-categories"
+                            type="button">
+                        <i class="fas fa-sitemap me-2 fs-5"></i>
+                        <span class="fw-medium">Category Configuration</span>
                     </button>
                 </div>
             </nav>
@@ -597,19 +663,23 @@
                     <div class="card shadow-sm">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-0">Port Configuration</h5>
-                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addPortModal">
-                                <i class="fas fa-plus me-2"></i>Add New Port
-                            </button>
+                            <div>
+                                <a class="btn btn-primary btn-sm" href="@Url.Action("Create", "Ports")">
+                                    <i class="fas fa-plus me-2"></i>Add New Port
+                                </a>
+
+                            </div>
                         </div>
                         <div class="card-body p-0">
                             <div class="table-responsive">
-                                <table class="table table-hover mb-0">
+                                <table class="table table-hover mb-0" id="portsTable">
                                     <thead class="bg-light">
                                         <tr>
                                             <th>Port Name</th>
                                             <th>Active Tickets</th>
-                                            <th>Assigned Technicians</th>
+                                            <th>Technicians</th>
                                             <th>Last Activity</th>
+                                            <th>Status</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
@@ -617,16 +687,225 @@
                                         @foreach (var port in ViewBag.Ports)
                                         {
                                             <tr>
-                                                <td>@port.PortName</td>
-                                                <td>@port.ActiveTickets</td>
-                                                <td>@port.TechnicianCount</td>
+                                                <td>
+                                                    <i class="fas fa-anchor text-primary me-2"></i>
+                                                    <strong>@port.PortName</strong>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-info">@port.ActiveTickets active</span>
+                                                </td>
+                                                <td>
+                                                    <div class="avatar-group">
+                                                        @{
+                                                            // Create a list of valid technicians
+                                                            var validTechs = new List<dynamic>();
+                                                            foreach (var tp in port.TechnicianPorts)
+                                                            {
+                                                                if (!string.IsNullOrEmpty(tp.FullName))
+                                                                {
+                                                                    validTechs.Add(tp);
+                                                                }
+                                                            }
+                                                        }
+
+                                                        @for (int i = 0; i < Math.Min(validTechs.Count, 3); i++)
+                                                        {
+                                                            var tech = validTechs[i];
+                                                            <div class="avatar-sm" data-bs-toggle="tooltip" title="@tech.FullName">
+                                                                @GetInitials(tech.FullName)
+                                                            </div>
+                                                        }
+
+                                                        @if (validTechs.Count > 3)
+                                                        {
+                                                            <div class="avatar-sm bg-light text-dark">
+                                                                +@(validTechs.Count - 3)
+                                                            </div>
+                                                        }
+
+                                                        @if (validTechs.Count == 0)
+                                                        {
+                                                            <span class="badge bg-warning">No technicians</span>
+                                                        }
+                                                    </div>
+                                                </td>
                                                 <td>@port.LastActivity</td>
                                                 <td>
-                                                    <button class="btn btn-sm btn-outline-secondary">
+                                                    <span class="badge bg-success">Active</span>
+                                                </td>
+                                                <td>
+                                                    <a class="btn btn-sm btn-outline-secondary" href="@Url.Action("Edit", "Ports", new { id = port.Id })">
                                                         <i class="fas fa-edit"></i>
-                                                    </button>
-                                                    <button class="btn btn-sm btn-outline-danger ms-2">
+                                                    </a>
+
+                                                    <a class="btn btn-sm btn-outline-danger ms-2" href="@Url.Action("Delete", "Ports", new { id = port.Id })">
                                                         <i class="fas fa-trash"></i>
+                                                    </a>
+
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Technician Management Tab -->
+                <div class="tab-pane fade" id="nav-technicians">
+                    <div class="card shadow-sm">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Technician Management</h5>
+                            <div>
+                                <div class="input-group input-group-sm me-2" style="width: 250px;">
+                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    <input type="text" id="techSearch" class="form-control" placeholder="Search technicians...">
+                                </div>
+                                <a class="btn btn-primary btn-sm" href="@Url.Action("Create", "Technicians")">
+                                    <i class="fas fa-user-plus me-2"></i>Add Technician
+                                </a>
+
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="techTable">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th>Technician</th>
+                                            <th>Specialization</th>
+                                            <th>Ports</th>
+                                            <th>Workload</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var tech in ViewBag.Technicians)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="avatar bg-primary text-white rounded-circle me-2">
+                                                            @GetInitials(tech.FullName)
+                                                        </div>
+                                                        <div class="fw-bold">@tech.FullName</div>
+                                                    </div>
+                                                </td>
+                                                <td>@tech.GroupName</td>
+                                                <td>
+                                                    <div class="d-flex flex-wrap gap-1">
+                                                        @{
+                                                            // Fixed: Use LINQ methods properly
+                                                            var portCount = tech.Ports.Count;
+                                                            var maxPortsToShow = 2;
+
+                                                            for (int i = 0; i < Math.Min(portCount, maxPortsToShow); i++)
+                                                            {
+                                                                <span class="badge bg-light text-dark">@tech.Ports[i]</span>
+                                                            }
+
+                                                            if (portCount > maxPortsToShow)
+                                                            {
+                                                                <span class="badge bg-light text-dark">+@(portCount - maxPortsToShow) more</span>
+                                                            }
+                                                        }
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="progress flex-grow-1" style="height: 8px">
+                                                            <div class="progress-bar" role="progressbar"
+                                                                 style="width: @tech.WorkloadPercentage%; background-color: @(tech.WorkloadPercentage > 80 ? "#dc3545" : tech.WorkloadPercentage > 60 ? "#ffc107" : "#0dcaf0")">
+                                                            </div>
+                                                        </div>
+                                                        <small class="ms-2">@tech.WorkloadPercentage%</small>
+                                                    </div>
+                                                    <small class="text-muted">@tech.ActiveTickets tickets</small>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-success">Active</span>
+                                                </td>
+                                                <td>
+                                                    <a class="btn btn-sm btn-outline-secondary" href="@Url.Action("Edit", "Technicians", new { id = tech.Id })">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <a class="btn btn-sm btn-outline-danger ms-2" href="@Url.Action("Delete", "Technicians", new { id = tech.Id })">
+                                                        <i class="fas fa-user-slash"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Escalations Tab -->
+                <div class="tab-pane fade" id="nav-escalations">
+                    <div class="card shadow-sm">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Escalated Tickets <span class="badge bg-danger">@ViewBag.EscalatedTicketsCount</span></h5>
+                            <div class="d-flex">
+                                <select class="form-select form-select-sm me-2" style="width: 150px;">
+                                    <option>All Ports</option>
+                                    @foreach (var port in ViewBag.Ports)
+                                    {
+                                        <option>@port.PortName</option>
+                                    }
+                                </select>
+                                <div class="input-group input-group-sm" style="width: 200px;">
+                                    <span class="input-group-text"><i class="fas fa-filter"></i></span>
+                                    <select class="form-select">
+                                        <option>Last 24 hours</option>
+                                        <option selected>Last 7 days</option>
+                                        <option>Last 30 days</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th>Ticket #</th>
+                                            <th>Port</th>
+                                            <th>Escalation Reason</th>
+                                            <th>Time Escalated</th>
+                                            <th>Senior Tech</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var ticket in ViewBag.EscalatedTickets)
+                                        {
+                                            <tr>
+                                                <td><span class="badge bg-dark">#@ticket.TicketNumber</span></td>
+                                                <td>@ticket.PortName</td>
+                                                <td>@ticket.SeniorTechnicianResponse</td>
+                                                <td>@ticket.EscalatedDate</td>
+                                                <td>
+                                                    @if (!string.IsNullOrEmpty(ticket.SeniorTech) && ticket.SeniorTech != "N/A")
+                                                    {
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="avatar-sm bg-primary text-white me-2">
+                                                                @GetInitials(ticket.SeniorTech)
+                                                            </div>
+                                                            @ticket.SeniorTech
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-warning text-dark">Unassigned</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-eye me-1"></i> View
                                                     </button>
                                                 </td>
                                             </tr>
@@ -643,8 +922,12 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="card shadow-sm h-100">
-                                <div class="card-header">
+                                <div class="card-header d-flex justify-content-between align-items-center">
                                     <h5 class="mb-0">Ticket Categories</h5>
+                                    <a href="@Url.Action("Create", "Categories")" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-plus me-1"></i> Add
+                                    </a>
+
                                 </div>
                                 <div class="card-body">
                                     <div class="list-group">
@@ -652,161 +935,66 @@
                                         {
                                             <div class="list-group-item d-flex justify-content-between align-items-center">
                                                 <div>
-                                                    @category.CategoryName
+                                                    <i class="fas fa-folder text-warning me-2"></i>
+                                                    <span class="fw-bold">@category.CategoryName</span>
                                                     <span class="badge bg-primary ms-2">@category.SubcategoryCount subcategories</span>
                                                 </div>
                                                 <div>
-                                                    <button class="btn btn-sm btn-outline-secondary">
+                                                    <a href="@Url.Action("Edit", "Categories", new { id = category.Id })" class="btn btn-sm btn-outline-secondary">
                                                         <i class="fas fa-edit"></i>
-                                                    </button>
-                                                    <button class="btn btn-sm btn-outline-danger ms-2">
+                                                    </a>
+                                                    <a href="@Url.Action("Delete", "Categories", new { id = category.Id })" class="btn btn-sm btn-outline-danger ms-2">
                                                         <i class="fas fa-trash"></i>
-                                                    </button>
+                                                    </a>
+
                                                 </div>
                                             </div>
                                         }
                                     </div>
-                                    <form class="mt-3">
-                                        <div class="input-group">
-                                            <input type="text" class="form-control" placeholder="New category name">
-                                            <button class="btn btn-primary" type="button">
-                                                <i class="fas fa-plus me-2"></i>Add Category
-                                            </button>
-                                        </div>
-                                    </form>
                                 </div>
                             </div>
                         </div>
 
                         <div class="col-md-6 mt-4 mt-md-0">
                             <div class="card shadow-sm h-100">
-                                <div class="card-header">
+                                <div class="card-header d-flex justify-content-between align-items-center">
                                     <h5 class="mb-0">Subcategory Management</h5>
+                                    <a href="@Url.Action("Create", "Subcategories")" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-plus me-1"></i> Add
+                                    </a>
+
                                 </div>
                                 <div class="card-body">
-                                    <form class="mb-4">
-                                        <div class="row g-2">
-                                            <div class="col-md-5">
-                                                <select class="form-select" asp-items="ViewBag.CategoriesSelectList"></select>
-                                            </div>
-                                            <div class="col-md-5">
-                                                <input type="text" class="form-control" placeholder="New subcategory">
-                                            </div>
-                                            <div class="col-md-2">
-                                                <button class="btn btn-primary w-100">
-                                                    <i class="fas fa-plus"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </form>
-                                    <div class="list-group">
+                                    <div class="mb-3">
+                                        <label class="form-label">Filter by Category</label>
+                                        <select class="form-select" id="categoryFilter">
+                                            <option>All Categories</option>
+                                            @foreach (var category in ViewBag.Categories)
+                                            {
+                                                <option>@category.CategoryName</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="list-group" id="subcategoryList">
                                         @foreach (var subcategory in ViewBag.Subcategories)
                                         {
-                                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                                @subcategory.SubcategoryName
-                                                <span class="badge bg-info">@subcategory.CategoryName</span>
+                                            <div class="list-group-item d-flex justify-content-between align-items-center"
+                                                 data-category-id="@subcategory.CategoryId">
+                                                <div>
+                                                    <i class="fas fa-tag text-info me-2"></i>
+                                                    @subcategory.SubcategoryName
+                                                </div>
+                                                <div>
+                                                    <span class="badge bg-light text-dark">@subcategory.CategoryName</span>
+                                                    <a href="@Url.Action("Delete", "Subcategories", new { id = subcategory.Id })" class="btn btn-sm btn-outline-danger ms-2">
+                                                        <i class="fas fa-trash"></i>
+                                                    </a>
+
+                                                </div>
                                             </div>
                                         }
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- Technician Allocation Tab -->
-                <div class="tab-pane fade" id="nav-technicians">
-                    <div class="card shadow-sm">
-                        <div class="card-header">
-                            <h5 class="mb-0">Technician Management</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead class="bg-light">
-                                        <tr>
-                                            <th>Technician</th>
-                                            <th>Assigned Ports</th>
-                                            <th>Specializations</th>
-                                            <th>Current Workload</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var tech in ViewBag.Technicians)
-                                    {
-                                        <tr>
-                                            <td>
-                                                <div class="d-flex align-items-center">
-                                                    <div class="avatar bg-primary text-white rounded-circle me-2">
-                                                        @GetInitials(tech.FullName)
-                                                    </div>
-                                                    @tech.FullName
-                                                </div>
-                                            </td>
-                                            <td>@tech.PortNames</td>
-                                            <td>@tech.GroupName</td>
-                                            <td>
-                                                <div class="progress" style="height: 8px">
-                                                    <div class="progress-bar" role="progressbar"
-                                                         style="width: @tech.WorkloadPercentage%">
-                                                    </div>
-                                                </div>
-                                                <small>@tech.WorkloadPercentage% capacity</small>
-                                            </td>
-                                            <td>
-                                                <button class="btn btn-sm btn-outline-secondary">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Escalations Tab -->
-                <div class="tab-pane fade" id="nav-escalations">
-                    <div class="card shadow-sm">
-                        <div class="card-header">
-                            <h5 class="mb-0">Escalated Tickets (@ViewBag.EscalatedTicketsCount)</h5>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-hover mb-0">
-                                    <thead class="bg-light">
-                                        <tr>
-                                            <th>Ticket #</th>
-                                            <th>Port</th>
-                                            <th>Escalation Reason</th>
-                                            <th>Time Escalated</th>
-                                            <th>Assigned Senior Tech</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var ticket in ViewBag.EscalatedTickets)
-                                        {
-                                            <tr>
-                                                <td>@ticket.TicketNumber</td>
-                                                <td>@ticket.PortName</td>
-                                                <td>@ticket.SeniorTechnicianResponse</td>
-                                                <td>@ticket.EscalatedDate</td>
-                                                <td>
-                                                    @if (!string.IsNullOrEmpty(ticket.SeniorTech))
-                                                    {
-                                                        <span class="badge bg-primary">
-                                                            @GetInitials(ticket.SeniorTech)
-                                                        </span>
-                                                        @ticket.SeniorTech
-                                                    }
-                                                </td>
-                                            </tr>
-                                        
-                                        }
-                                    </tbody>
-                                </table>
                             </div>
                         </div>
                     </div>
@@ -829,14 +1017,45 @@
                                 <input type="text" class="form-control" name="portName" required>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Initial Technicians</label>
-                                <select class="form-select" multiple name="technicianIds"
-                                        asp-items="ViewBag.TechniciansList"></select>
+                                <label class="form-label">Assign Technicians</label>
+                                <select class="form-select" multiple name="technicianIds" asp-items="ViewBag.TechniciansList"></select>
                             </div>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                             <button type="submit" class="btn btn-primary">Create Port</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Technician Modal -->
+        <div class="modal fade" id="addTechModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add New Technician</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form asp-action="CreateTechnician" method="post">
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Full Name</label>
+                                <input type="text" class="form-control" name="fullName" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Specialization Group</label>
+                                <select class="form-select" name="groupId" asp-items="ViewBag.TechnicianGroups"></select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Assign to Ports</label>
+                                <select class="form-select" multiple name="portIds" asp-items="ViewBag.PortsList"></select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Add Technician</button>
                         </div>
                     </form>
                 </div>
@@ -848,8 +1067,8 @@
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css" rel="stylesheet">
-
 <style>
+    /* Existing Dashboard Styles (Unchanged) */
     .icon-bg {
         width: 48px;
         height: 48px;
@@ -912,74 +1131,219 @@
         height: 120px;
         position: relative;
     }
-</style>
 
+    .avatar-group .avatar-sm {
+        margin-right: -10px;
+        border: 2px solid #fff;
+    }
+
+    .avatar-sm {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        font-size: 0.7rem;
+        font-weight: bold;
+    }
+
+    .stat-card {
+        display: inline-block;
+        text-align: center;
+        padding: 15px;
+        border-radius: 8px;
+        min-width: 120px;
+        margin-left: 15px;
+    }
+
+        .stat-card i {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .count {
+            display: block;
+            font-size: 1.8rem;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .stat-card .label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+    /* Tab Fixes (Updated for visibility) */
+    .nav-tabs .nav-link {
+        color: #495057 !important; /* Dark gray for inactive tabs */
+        background-color: #f8f9fa; /* Light gray background */
+        border: 1px solid #dee2e6;
+        border-bottom: none;
+        transition: all 0.2s ease;
+    }
+
+        .nav-tabs .nav-link i {
+            color: #495057 !important; /* Match text color */
+        }
+
+        /* Hover state - Darker text */
+        .nav-tabs .nav-link:hover {
+            color: #212529 !important; /* Darker text on hover */
+            background-color: #e9ecef; /* Slightly darker background */
+        }
+
+            .nav-tabs .nav-link:hover i {
+                color: #212529 !important; /* Darker icon on hover */
+            }
+
+        /* Active tab - Blue text */
+        .nav-tabs .nav-link.active {
+            color: #0d6efd !important; /* Primary blue text */
+            background-color: #fff !important; /* White background */
+            border-color: #dee2e6;
+            border-bottom-color: transparent !important;
+            font-weight: 500;
+        }
+
+            .nav-tabs .nav-link.active i {
+                color: #0d6efd !important; /* Primary blue icon */
+            }
+
+        /* Focus state */
+        .nav-tabs .nav-link:focus {
+            color: #0a58ca !important; /* Slightly darker blue */
+        }
+
+    /* Badge styling */
+    .badge-danger {
+        background-color: #dc3545 !important;
+        font-size: 0.75rem;
+        padding: 0.25em 0.4em;
+    }
+</style>
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Ticket Assignments Chart (Technician)
-    const technicianAssignmentsCtx = document.getElementById('assignmentsChart')?.getContext('2d');
-    if (technicianAssignmentsCtx) {
-        new Chart(technicianAssignmentsCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Unassigned', 'Pending', 'Closed', 'Escalated'],
-                datasets: [{
-                    data: [
+    document.addEventListener('DOMContentLoaded', function () {
+        // Ticket Assignments Chart (Technician)
+        const technicianAssignmentsCtx = document.getElementById('assignmentsChart')?.getContext('2d');
+        if (technicianAssignmentsCtx) {
+            new Chart(technicianAssignmentsCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Unassigned', 'Pending', 'Closed', 'Escalated'],
+                    datasets: [{
+                        data: [
     @ViewBag.TechnicianStats?.Opened ?? 0,
     @ViewBag.TechnicianStats?.Pending ?? 0,
     @ViewBag.TechnicianStats?.Closed ?? 0,
     @ViewBag.TechnicianStats?.Escalated ?? 0
-                    ],
-                    backgroundColor: ['#4e73df', '#f6c23e', '#1cc88a', '#e74a3b'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                plugins: { legend: { display: false } },
-                cutout: '70%'
-            }
-        });
-    }
+                        ],
+                        backgroundColor: ['#4e73df', '#f6c23e', '#1cc88a', '#e74a3b'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    plugins: { legend: { display: false } },
+                    cutout: '70%'
+                }
+            });
+        }
 
-    // Port Activity Chart (Main Overview)
-    const portActivityCtx = document.getElementById('portActivityChart')?.getContext('2d');
-    if (portActivityCtx) {
-        new Chart(portActivityCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Unassigned', 'Pending', 'Closed', 'Escalated'],
-                datasets: [{
-                    data: [
+        // Port Activity Chart (Main Overview)
+        const portActivityCtx = document.getElementById('portActivityChart')?.getContext('2d');
+        if (portActivityCtx) {
+            new Chart(portActivityCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Unassigned', 'Pending', 'Closed', 'Escalated'],
+                    datasets: [{
+                        data: [
     @ViewBag.PortStats?.Opened ?? 0,
     @ViewBag.PortStats?.Pending ?? 0,
     @ViewBag.PortStats?.Closed ?? 0,
     @ViewBag.PortStats?.Escalated ?? 0
-                    ],
-                    backgroundColor: ['#36b9cc', '#f6c23e', '#1cc88a', '#e74a3b'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                plugins: { legend: { display: false } },
-                cutout: '70%'
-            }
+                        ],
+                        backgroundColor: ['#36b9cc', '#f6c23e', '#1cc88a', '#e74a3b'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    plugins: { legend: { display: false } },
+                    cutout: '70%'
+                }
+            });
+        }
+
+        // Search functionality for ports table
+        const portSearchInput = document.getElementById('portSearch');
+        if (portSearchInput) {
+            portSearchInput.addEventListener('input', function () {
+                const searchValue = this.value.toLowerCase();
+                const rows = document.querySelectorAll('#portsTable tbody tr');
+
+                rows.forEach(row => {
+                    const portName = row.cells[0].textContent.toLowerCase();
+                    row.style.display = portName.includes(searchValue) ? '' : 'none';
+                });
+            });
+        }
+
+        // Search functionality for technicians table
+        const techSearchInput = document.getElementById('techSearch');
+        if (techSearchInput) {
+            techSearchInput.addEventListener('input', function () {
+                const searchValue = this.value.toLowerCase();
+                const rows = document.querySelectorAll('#techTable tbody tr');
+
+                rows.forEach(row => {
+                    const techName = row.cells[0].textContent.toLowerCase();
+                    row.style.display = techName.includes(searchValue) ? '' : 'none';
+                });
+            });
+        }
+
+        // Initialize tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
         });
-    }
+
+        // Filter subcategories by selected category
+        const categoryFilter = document.getElementById('categoryFilter');
+        if (categoryFilter) {
+            categoryFilter.addEventListener('change', function () {
+                const selectedCategoryId = this.value;
+                const allItems = document.querySelectorAll('#subcategoryList .list-group-item');
+
+                allItems.forEach(item => {
+                    const itemCategoryId = item.getAttribute('data-category-id');
+                    if (selectedCategoryId === 'all' || itemCategoryId === selectedCategoryId) {
+                        item.style.display = 'flex'; // show
+                    } else {
+                        item.style.display = 'none'; // hide
+                    }
+                });
+            });
+        }
+    });
 </script>
 
 
 
- @functions {
-        string GetInitials(string fullName)
-        {
-            if (string.IsNullOrEmpty(fullName)) return "";
-            var names = fullName.Split(' ');
-            return names.Length switch
-            {
-                0 => "",
-                1 => names[0][0].ToString(),
-                _ => $"{names[0][0]}{names[^1][0]}"
-            };
-        }
+@functions {
+    public string GetInitials(string fullName)
+    {
+        if (string.IsNullOrWhiteSpace(fullName))
+            return "??";
+
+        var names = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (names.Length >= 2)
+            return $"{names[0][0]}{names[1][0]}".ToUpper();
+
+        return fullName.Length >= 2
+            ? fullName.Substring(0, 2).ToUpper()
+            : fullName.ToUpper();
     }
+}

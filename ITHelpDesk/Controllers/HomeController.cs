@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Linq;
 using ITHelpDesk.Data;
 using ITHelpDesk.Models;
@@ -33,35 +33,40 @@ namespace ITHelpDesk.Controllers
 
             if (role == "Technical Support")
             {
-                // Get technicians with formatted data
-                var technicians = await _context.Technicians
-                    .Include(t => t.TechnicianPorts)
-                        .ThenInclude(tp => tp.Port)
-                    .Include(t => t.TechnicianGroup)
-                    .Include(t => t.Tickets)
-                        .ThenInclude(t => t.Status)
-                    .Select(t => new
-                    {
-                        t.Id,
-                        t.FullName,
-                        PortNames = string.Join(", ", t.TechnicianPorts.Select(tp => tp.Port.PortName)),
-                        GroupName = t.TechnicianGroup != null ? t.TechnicianGroup.GroupName : "N/A",
-                        WorkloadPercentage = Math.Min(
-                            (int)((double)t.Tickets.Count(tkt => tkt.Status != null && tkt.Status.StatusName != "Closed") / 10 * 100),
-                            100
-                        )
-                    })
-                    .ToListAsync();
-                // For Technical Support Dashboard
+                ViewBag.Ports = await _context.Ports
+     .Include(p => p.Tickets)
+         .ThenInclude(t => t.Status)
+     .Include(p => p.TechnicianPorts)
+         .ThenInclude(tp => tp.Technician)
+     .Select(p => new
+     {
+         p.Id,
+         p.PortName,
+         ActiveTickets = p.Tickets.Count(t => t.Status != null && t.Status.StatusName != "Closed"),
+         TechnicianPorts = p.TechnicianPorts
+             .Where(tp => tp.Technician != null)  // Filter null technicians in DB query
+             .Select(tp => new
+             {
+                 FullName = tp.Technician.FullName,
+                 Id = tp.Technician.Id
+             })
+             .ToList(),
+         LastActivity = p.Tickets.Any()
+             ? p.Tickets.Max(t => t.CreatedAt).ToString("g")
+             : "N/A"
+     })
+     .ToListAsync();
+
+                // Escalated tickets
                 ViewBag.EscalatedTickets = await _context.Tickets
-                    .Include(t => t.Port) // Include Port
+                    .Include(t => t.Port)
                     .Include(t => t.SeniorTechnician)
                     .Where(t => t.SeniorTechnicianId != null)
                     .OrderByDescending(t => t.EscalatedDate)
                     .Select(t => new
                     {
                         t.TicketNumber,
-                        PortName = t.Port != null ? t.Port.PortName : "N/A", // Direct access
+                        PortName = t.Port != null ? t.Port.PortName : "N/A",
                         t.SeniorTechnicianResponse,
                         EscalatedDate = t.EscalatedDate.HasValue
                             ? t.EscalatedDate.Value.ToString("g")
@@ -72,54 +77,78 @@ namespace ITHelpDesk.Controllers
                     })
                     .ToListAsync();
 
-                // Get ports with statistics
-                ViewBag.Ports = await _context.Ports
-                    .Include(p => p.Tickets)
-                        .ThenInclude(t => t.Status)
-                    .Include(p => p.TechnicianPorts)
-                    .Select(p => new
-                    {
-                        p.PortName,
-                        ActiveTickets = p.Tickets.Count(t => t.Status != null && t.Status.StatusName != "Closed"),
-                        TechnicianCount = p.TechnicianPorts.Count,
-                        LastActivity = p.Tickets.Any()
-                            ? p.Tickets.Max(t => t.CreatedAt).ToString("g")
-                            : "N/A"
-                    })
-                    .ToListAsync();
+                ViewBag.EscalatedTicketsCount = ViewBag.EscalatedTickets.Count;
 
-                // Get categories with subcategory count
+                // Categories
                 ViewBag.Categories = await _context.Categories
                     .Select(c => new
                     {
+                        c.Id,
                         c.CategoryName,
                         SubcategoryCount = c.Subcategories.Count
                     })
                     .ToListAsync();
 
-                // Get subcategories with category names
+                // Subcategories
                 ViewBag.Subcategories = await _context.Subcategories
                     .Include(s => s.Category)
                     .Select(s => new
                     {
+                        s.Id,
                         s.SubcategoryName,
+                        s.CategoryId,
                         CategoryName = s.Category != null ? s.Category.CategoryName : "N/A"
                     })
                     .ToListAsync();
 
-                ViewBag.Technicians = technicians;
-               /* ViewBag.EscalatedTickets = escalatedTickets;
-                ViewBag.EscalatedTicketsCount = escalatedTickets.Count();*/
+                // Technicians without phone and employee ID
+                ViewBag.Technicians = await _context.Technicians
+                    .Include(t => t.TechnicianPorts)
+                        .ThenInclude(tp => tp.Port)
+                    .Include(t => t.TechnicianGroup)
+                    .Include(t => t.Tickets)
+                        .ThenInclude(t => t.Status)
+                    .Select(t => new
+                    {
+                        t.Id,
+                        t.FullName,
+                        Ports = t.TechnicianPorts != null
+                            ? t.TechnicianPorts
+                                .Where(tp => tp.Port != null)
+                                .Select(tp => tp.Port.PortName)
+                                .ToList()
+                            : new List<string>(),
+                        GroupName = t.TechnicianGroup != null ? t.TechnicianGroup.GroupName : "N/A",
+                        WorkloadPercentage = Math.Min(
+                            (int)((double)t.Tickets.Count(tkt => tkt.Status != null && tkt.Status.StatusName != "Closed") / 10 * 100),
+                            100
+                        ),
+                        ActiveTickets = t.Tickets.Count(tkt => tkt.Status != null && tkt.Status.StatusName != "Closed")
+                    })
+                    .ToListAsync();
+
+                // Dropdown lists
                 ViewBag.TechniciansList = new SelectList(
                     await _context.Technicians.ToListAsync(),
                     "Id",
                     "FullName"
                 );
 
+                ViewBag.PortsList = new SelectList(
+                    await _context.Ports.ToListAsync(),
+                    "Id",
+                    "PortName"
+                );
+
+                ViewBag.TechnicianGroups = new SelectList(
+                    await _context.TechnicianGroups.ToListAsync(),
+                    "Id",
+                    "GroupName"
+                );
+
                 return View();
-
-
             }
+
 
             if (role == "Management")
             {
@@ -237,10 +266,37 @@ namespace ITHelpDesk.Controllers
                     int technicianId = technician.Id;
                     int technicianGroupId = technician.TechnicianGroupId;
 
-                    var assignedTickets = _context.Tickets
+
+
+                    string search = Request.Query["search"];
+
+                    // Start building assignedTickets query
+                    var assignedTicketsQuery = _context.Tickets
                         .Include(t => t.Status)
+                        .Include(t => t.Priority)
+                        .Include(t => t.Port)
+                        .Include(t => t.Category)
+                        .Include(t => t.Subcategory)
                         .Where(t => t.AssignedTechnicianId == technicianId);
 
+                    // Apply search filter if keyword exists
+                    if (!string.IsNullOrEmpty(search))
+                    {
+                        assignedTicketsQuery = assignedTicketsQuery.Where(t =>
+                            t.TicketNumber.Contains(search) ||
+                            t.RequesterName.Contains(search) ||
+                            t.Port.PortName.Contains(search) ||
+                            t.Category.CategoryName.Contains(search) ||
+                            t.Subcategory.SubcategoryName.Contains(search));
+                    }
+
+                    // Get technician's assigned port IDs
+                    var assignedPortIds = await _context.TechnicianPorts
+                        .Where(tp => tp.TechnicianId == technicianId)
+                        .Select(tp => tp.PortId)
+                        .ToListAsync();
+
+                    // Filter unassigned group tickets to include only those at technician's ports
                     var unassignedGroupTickets = _context.Tickets
                         .Include(t => t.Status)
                         .Include(t => t.Subcategory)
@@ -248,16 +304,18 @@ namespace ITHelpDesk.Controllers
                             t.AssignedTechnicianId == null &&
                             t.Subcategory != null &&
                             t.Subcategory.TechnicianGroupId == technicianGroupId &&
+                            assignedPortIds.Contains(t.PortId) && // 👈 key fix here
                             t.Status != null &&
                             t.Status.StatusName == "Unassigned");
+
 
                     ViewBag.TechnicianStats = new
                     {
                         Opened = await unassignedGroupTickets.CountAsync(),
-                        Pending = await assignedTickets.CountAsync(t => t.Status.StatusName == "Assigned"),
-                        Closed = await assignedTickets.CountAsync(t => t.Status.StatusName == "Closed"),
-                        Escalated = await assignedTickets.CountAsync(t => t.SeniorTechnicianId != null),
-                        Total = await assignedTickets.CountAsync() + await unassignedGroupTickets.CountAsync()
+                        Pending = await assignedTicketsQuery.CountAsync(t => t.Status.StatusName == "Assigned"),
+                        Closed = await assignedTicketsQuery.CountAsync(t => t.Status.StatusName == "Closed"),
+                        Escalated = await assignedTicketsQuery.CountAsync(t => t.SeniorTechnicianId != null),
+                        Total = await assignedTicketsQuery.CountAsync() + await unassignedGroupTickets.CountAsync()
                     };
 
                     var assignedPorts = await _context.TechnicianPorts
@@ -292,14 +350,10 @@ namespace ITHelpDesk.Controllers
                         Total = 0
                     };
 
-                    ViewBag.TechnicianTickets = await assignedTickets
-                        .Include(t => t.Status)
-                        .Include(t => t.Priority)
-                        .Include(t => t.Port)
-                        .Include(t => t.Category)
-                        .Include(t => t.Subcategory)
+                    // Assign technician tickets (filtered by search if provided)
+                    ViewBag.TechnicianTickets = await assignedTicketsQuery
                         .OrderByDescending(t => t.CreatedAt)
-                        .Take(10)
+                        .Take(5)
                         .Select(t => new
                         {
                             t.TicketNumber,

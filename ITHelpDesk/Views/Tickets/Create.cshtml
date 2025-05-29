@@ -219,6 +219,20 @@
             });
 
 
+                    $('#SubcategoryId').change(function () {
+            var subcategoryId = $(this).val();
+            var technicianDropdown = $('#ManuallyAssignedToId');
+            technicianDropdown.empty().append('<option value="">Loading...</option>');
+
+            if (subcategoryId) {
+                $.getJSON('/Tickets/GetTechniciansBySubcategory?subcategoryId=' + subcategoryId, function (data) {
+                    technicianDropdown.empty().append('<option value="">Select Technician</option>');
+                    $.each(data, function (i, tech) {
+                        technicianDropdown.append($('<option></option>').val(tech.id).text(tech.name));
+                    });
+                });
+            }
+        });
 
             // File upload preview
             const fileInput = document.getElementById("customFile");

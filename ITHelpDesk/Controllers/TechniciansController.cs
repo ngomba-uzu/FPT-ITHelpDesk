@@ -351,19 +351,32 @@ namespace ITHelpDesk.Controllers
                 .Select(s => s.Id)
                 .ToListAsync();
 
+            // Step 2: Get PortIds assigned to this technician
+            var technicianPortIds = await _context.TechnicianPorts
+                .Where(tp => tp.TechnicianId == technician.Id)
+                .Select(tp => tp.PortId)
+                .ToListAsync();
+
+            if (!technicianPortIds.Any())
+            {
+                return Content("You are not assigned to any ports. Please contact admin.");
+            }
+
             var twoMinutesAgo = DateTime.Now.AddMinutes(-2);
 
             // Load unassigned, high-priority tickets that are older than 2 minutes and not escalated
             var escalatedTickets = await _context.Tickets
-                .Where(t => t.AssignedTechnicianId == null &&
-                            t.CreatedAt <= twoMinutesAgo &&
-                            t.Priority.PriorityName.ToLower() == "high" &&
-                            !t.IsAutoEscalated)
-                .Include(t => t.Priority)
-                .Include(t => t.Subcategory)
-                    .ThenInclude(sc => sc.TechnicianGroup)
-                        .ThenInclude(tg => tg.SeniorTechnician)
-                .ToListAsync();
+          .Where(t => t.AssignedTechnicianId == null &&
+                      t.CreatedAt <= twoMinutesAgo &&
+                      t.Priority.PriorityName.ToLower() == "high" &&
+                      !t.IsAutoEscalated &&
+                      subcategoryIds.Contains(t.SubcategoryId) &&
+                      technicianPortIds.Contains(t.PortId))
+          .Include(t => t.Priority)
+          .Include(t => t.Subcategory)
+              .ThenInclude(sc => sc.TechnicianGroup)
+                  .ThenInclude(tg => tg.SeniorTechnician)
+          .ToListAsync();
 
 
             // Group tickets by Senior Technician
@@ -403,12 +416,14 @@ namespace ITHelpDesk.Controllers
 
             // Normal ticket loading
             IQueryable<Ticket> ticketsQuery = _context.Tickets
-                .Where(t => t.AssignedTechnicianId == null && subcategoryIds.Contains(t.SubcategoryId))
-                .Include(t => t.Subcategory)
-                .Include(t => t.Department)
-                .Include(t => t.Priority)
-                .Include(t => t.Status)
-                .Include(t => t.Port);
+         .Where(t => t.AssignedTechnicianId == null &&
+                     subcategoryIds.Contains(t.SubcategoryId) &&
+                     technicianPortIds.Contains(t.PortId))
+         .Include(t => t.Subcategory)
+         .Include(t => t.Department)
+         .Include(t => t.Priority)
+         .Include(t => t.Status)
+         .Include(t => t.Port);
 
             if (!string.IsNullOrEmpty(searchTerm))
             {
@@ -506,7 +521,10 @@ namespace ITHelpDesk.Controllers
                 TicketNumber = ticket.TicketNumber,
                 SeniorTechnicianResponse = ticket.SeniorTechnicianResponse,
                 Description = ticket.Description,
-                StatusList = await _context.Status.ToListAsync()
+                StatusList = await _context.Status
+                    .Where(s => s.StatusName != "Unassigned" && s.StatusName != "Assigned")
+                    .ToListAsync()
+
             };
 
             return View(model);
@@ -540,16 +558,16 @@ namespace ITHelpDesk.Controllers
                     ticket.FileName = "/documents/" + model.Document.FileName;
                 }
 
-                // Set ticket status to Closed
-                var closedStatus = await _context.Status.FirstOrDefaultAsync(s => s.StatusName == "Closed");
-                if (closedStatus == null)
+                // ✅ Set ticket status
+                var selectedStatus = await _context.Status.FirstOrDefaultAsync(s => s.Id == model.StatusId);
+                if (selectedStatus == null)
                 {
-                    closedStatus = new Status { StatusName = "Closed" };
-                    _context.Status.Add(closedStatus);
-                    await _context.SaveChangesAsync();
+                    ModelState.AddModelError("", "Invalid status selected.");
+                    model.StatusList = await _context.Status.ToListAsync();
+                    return View(model);
                 }
 
-                ticket.StatusId = closedStatus.Id;
+                ticket.StatusId = selectedStatus.Id;
                 ticket.ClosedDate = DateTime.Now;
                 ticket.IsResolutionAcknowledged = false;
 
@@ -571,25 +589,41 @@ namespace ITHelpDesk.Controllers
                 _context.Update(ticket);
                 await _context.SaveChangesAsync();
 
-                // Prepare acknowledgment email
-                var subject = $"Ticket {ticket.TicketNumber} Closed - Was it resolved?";
-                var body = $@"
-            <p>Dear {ticket.RequesterName},</p>
-            <p>Your ticket <strong>{ticket.TicketNumber}</strong> has been marked as resolved.</p>
-            <p>Are you satisfied with the resolution?</p>
-            <p>
-                <a href='https://localhost:44388/Technicians/Acknowledge?id={ticket.Id}&acknowledge=Yes'>✅ Yes</a> &nbsp;
-                <a href='https://localhost:44388/Technicians/Acknowledge?id={ticket.Id}&acknowledge=No'>❌ No</a>
-            </p>
-            <p>Thank you,<br/>IT HelpDesk Team</p>";
 
-                // ✅ Always send to ticket.Email (if not technician)
+
+                string subject = "";
+                string body = "";
+
+                if (selectedStatus.StatusName == "Closed")
+                {
+                    subject = $"Ticket {ticket.TicketNumber} Closed - Was it resolved?";
+                    body = $@"
+        <p>Dear {ticket.RequesterName},</p>
+        <p>Your ticket <strong>{ticket.TicketNumber}</strong> has been marked as resolved.</p>
+        <p>Are you satisfied with the resolution?</p>
+        <p>
+            <a href='https://localhost:44388/Technicians/Acknowledge?id={ticket.Id}&acknowledge=Yes'>✅ Yes</a> &nbsp;
+            <a href='https://localhost:44388/Technicians/Acknowledge?id={ticket.Id}&acknowledge=No'>❌ No</a>
+        </p>
+        <p>Thank you,<br/>IT HelpDesk Team</p>";
+                }
+                else if (selectedStatus.StatusName == "Failed")
+                {
+                    subject = $"Ticket {ticket.TicketNumber} Failed to Resolve";
+                    body = $@"
+        <p>Dear {ticket.RequesterName},</p>
+        <p>We regret to inform you that your ticket <strong>{ticket.TicketNumber}</strong> could not be resolved successfully.</p>
+        <p>A technician attempted resolution but marked it as failed. Please follow up with the IT department for further assistance.</p>
+        <p>Thank you,<br/>IT HelpDesk Team</p>";
+                }
+
+                // ✅ Always send to requester if different from technician
                 if (ticket.Email != User.Identity.Name)
                 {
                     await _emailSender.SendEmailAsync(ticket.Email, subject, body);
                 }
 
-                // ✅ If ticket was created by a user, and their email is different from ticket.Email and not the technician
+                // ✅ Also send to creator (if different)
                 if (ticket.CreatedBy != null)
                 {
                     var user = await _context.Users.FindAsync(ticket.CreatedBy);

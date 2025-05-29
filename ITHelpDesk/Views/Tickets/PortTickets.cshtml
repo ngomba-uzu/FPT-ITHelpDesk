@@ -11,24 +11,42 @@
         </h2>
 
         <div class="d-flex align-items-center gap-3">
-            <!-- Filter by Month -->
+
             <form method="get" asp-action="PortTickets" class="d-flex align-items-center gap-2">
                 <label for="month" class="form-label mb-0">Filter by Month:</label>
-                <input type="month"
-                       name="month"
-                       id="month"
-                       value="@ViewBag.SelectedMonth"
-                       class="form-control form-control-sm"
-                       onchange="this.form.submit()">
+                <input type="month" name="month" id="month" value="@ViewBag.SelectedMonth"
+                       class="form-control form-control-sm" onchange="this.form.submit()" />
+
+                @if (ViewBag.Ports != null)
+                {
+                    <label for="portId" class="form-label mb-0 ms-3">Filter by Port:</label>
+                    <select name="portId" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">All Ports</option>
+                        @foreach (var item in (List<SelectListItem>)ViewBag.Ports)
+                        {
+                            <option value="@item.Value" selected="@item.Selected">@item.Text</option>
+                        }
+                    </select>
+                }
             </form>
+
 
             <!-- Export Button -->
             @if (Model.Any())
             {
                 <form method="post" asp-action="ExportTickets" class="ms-2">
                     <input type="hidden" name="month" value="@ViewBag.SelectedMonth" />
+                    <input type="hidden" name="portId" value="@ViewBag.SelectedPortId" />
                     <button type="submit" class="btn btn-sm btn-success">
-                        <i class="fas fa-file-export me-1"></i> Export @ViewBag.SelectedMonthName Tickets
+                        <i class="fas fa-file-export me-1"></i>
+                        Export @ViewBag.SelectedMonthName
+                        @if (ViewBag.SelectedPortId != null)
+                        {
+                            <text>
+                                - @(((List<SelectListItem>)ViewBag.Ports)?.FirstOrDefault(p => p.Value == ViewBag.SelectedPortId?.ToString())?.Text)
+                            </text>
+                        }
+                        Tickets
                     </button>
                 </form>
             }
@@ -108,7 +126,7 @@
                             <tr>
                                 <td colspan="10" class="text-center py-4">
                                     <div class="alert alert-info mb-0">
-                                        <i class="fas fa-info-circle me-2"></i> No tickets found for the selected month.
+                                        <i class="fas fa-info-circle me-2"></i> No tickets found for the selected filters.
                                     </div>
                                 </td>
                             </tr>

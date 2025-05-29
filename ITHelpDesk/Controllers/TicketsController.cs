@@ -226,24 +226,25 @@ namespace ITHelpDesk.Controllers
                 ticket.CreatedAt = DateTime.Now;
                 ticket.CreatedBy = appUser.Id;
 
-                // Generate ticket number
-                var lastTicket = await _context.Tickets
-                    .Where(t => t.TicketNumber.StartsWith("#TKT-"))
+                // Generate per-user ticket number
+                var lastUserTicket = await _context.Tickets
+                    .Where(t => t.CreatedBy == appUser.Id)
                     .OrderByDescending(t => t.TicketNumber)
                     .Select(t => t.TicketNumber)
                     .FirstOrDefaultAsync();
 
-                int newNumber = 1;
-                if (!string.IsNullOrEmpty(lastTicket))
+                int newUserNumber = 1;
+                if (!string.IsNullOrEmpty(lastUserTicket))
                 {
-                    var match = Regex.Match(lastTicket, @"#TKT-(\d+)");
+                    var match = Regex.Match(lastUserTicket, @"#TKT-(\d+)");
                     if (match.Success)
                     {
-                        newNumber = int.Parse(match.Groups[1].Value) + 1;
+                        newUserNumber = int.Parse(match.Groups[1].Value) + 1;
                     }
                 }
 
-                ticket.TicketNumber = $"#TKT-{newNumber:D3}";
+                ticket.TicketNumber = $"#TKT-{newUserNumber:D3}";
+
 
                 _context.Tickets.Add(ticket);
                 await _context.SaveChangesAsync();
@@ -287,16 +288,19 @@ namespace ITHelpDesk.Controllers
                     if (matchingTechs.Any())
                     {
                         var subject = $"New Ticket Created: {ticket.TicketNumber}";
+                        var ticketLink = Url.Action("Details", "Ticket", new { id = ticket.Id }, protocol: Request.Scheme);
                         var body = $@"
-                    <p>A new support ticket has been submitted:</p>
-                    <ul>
-                        <li><strong>Ticket Number:</strong> {ticket.TicketNumber}</li>
-                        <li><strong>Description:</strong> {ticket.Description}</li>
-                        <li><strong>Priority:</strong> {ticket.Priority?.PriorityName ?? "N/A"}</li>
-                        <li><strong>Submitted By:</strong> {ticket.RequesterName}</li>
-                        <li><strong>Date:</strong> {ticket.CreatedAt:yyyy/MM/dd HH:mm:ss}</li>
-                    </ul>
-                    <p>Please log in to the system to view and assign the ticket.</p>";
+<p>A new support ticket has been submitted:</p>
+<ul>
+    <li><strong>Ticket Number:</strong> {ticket.TicketNumber}</li>
+    <li><strong>Description:</strong> {ticket.Description}</li>
+    <li><strong>Priority:</strong> {ticket.Priority?.PriorityName ?? "N/A"}</li>
+    <li><strong>Submitted By:</strong> {ticket.RequesterName}</li>
+    <li><strong>Date:</strong> {ticket.CreatedAt:yyyy/MM/dd HH:mm:ss}</li>
+</ul>
+<p><a href='{ticketLink}'>Click here to view this ticket</a> (requires login).</p>     
+<p>Please log in to the system to view and assign the ticket.</p>";
+
 
                         foreach (var tech in matchingTechs)
                         {
@@ -362,7 +366,25 @@ namespace ITHelpDesk.Controllers
         }
 
 
+        public async Task<IActionResult> GetTechniciansBySubcategory(int subcategoryId)
+        {
+            // 1. Get the TechnicianGroupId from the selected Subcategory
+            var subcategory = await _context.Subcategories
+                .FirstOrDefaultAsync(s => s.Id == subcategoryId);
 
+            if (subcategory == null)
+            {
+                return Json(new List<object>());
+            }
+
+            // 2. Get all technicians in this group
+            var technicians = await _context.Technicians
+                .Where(t => t.TechnicianGroupId == subcategory.TechnicianGroupId)
+                .Select(t => new { id = t.Id, name = t.FullName })
+                .ToListAsync();
+
+            return Json(technicians);
+        }
 
 
         // GET: Tickets/Edit/5
@@ -469,26 +491,82 @@ namespace ITHelpDesk.Controllers
             return _context.Tickets.Any(e => e.Id == id);
         }
 
-        public async Task<IActionResult> PortTickets(string month)
+
+        public async Task<IActionResult> PortTickets(string month, int? portId)
         {
-            var ticketsQuery = _context.Tickets
-                .Include(t => t.Status)
-                .Include(t => t.Port)
-                .Include(t => t.Category)
-                .Include(t => t.Subcategory)
-                .Include(t => t.Priority)
-                .Include(t => t.AssignedTechnician) // Ensure this includes FullName
-                .Include(t => t.Department)
-                .Where(t => t.PortId != null);
+            var user = await _userManager.GetUserAsync(User);
+            bool isManagement = await _userManager.IsInRoleAsync(user, "Management");
 
-            DateTime selectedMonth;
-            if (!string.IsNullOrEmpty(month) && DateTime.TryParse(month + "-01", out selectedMonth))
+            IQueryable<Ticket> ticketsQuery;
+
+            if (isManagement)
             {
-                ticketsQuery = ticketsQuery
-                    .Where(t => t.CreatedAt.Month == selectedMonth.Month && t.CreatedAt.Year == selectedMonth.Year);
+                var ports = await _context.Ports.OrderBy(p => p.PortName).ToListAsync();
+                ViewBag.Ports = ports.Select(p => new SelectListItem
+                {
+                    Value = p.Id.ToString(),
+                    Text = p.PortName,
+                    Selected = p.Id == portId
+                }).ToList();
 
+                ticketsQuery = _context.Tickets
+                    .Include(t => t.Status)
+                    .Include(t => t.Port)
+                    .Include(t => t.Category)
+                    .Include(t => t.Subcategory)
+                    .Include(t => t.Priority)
+                    .Include(t => t.AssignedTechnician)
+                    .Include(t => t.Department);
+
+                if (portId.HasValue)
+                {
+                    ticketsQuery = ticketsQuery.Where(t => t.PortId == portId.Value);
+                    ViewBag.SelectedPortId = portId;
+                }
+                else
+                {
+                    ViewBag.SelectedPortId = null;
+                }
+            }
+            else // Technician
+            {
+                var userId = _userManager.GetUserId(User);
+                var technician = await _context.Technicians.FirstOrDefaultAsync(t => t.UserId == userId);
+                if (technician == null)
+                    return View(new List<Ticket>());
+
+                var assignedPortIds = await _context.TechnicianPorts
+                    .Where(tp => tp.TechnicianId == technician.Id)
+                    .Select(tp => tp.PortId)
+                    .ToListAsync();
+
+                if (!assignedPortIds.Any())
+                    return View(new List<Ticket>());
+
+                ticketsQuery = _context.Tickets
+                    .Include(t => t.Status)
+                    .Include(t => t.Port)
+                    .Include(t => t.Category)
+                    .Include(t => t.Subcategory)
+                    .Include(t => t.Priority)
+                    .Include(t => t.AssignedTechnician)
+                    .Include(t => t.Department)
+                    .Where(t => assignedPortIds.Contains(t.PortId));
+
+                ViewBag.Ports = null;
+                ViewBag.SelectedPortId = assignedPortIds.First(); // default to their first port
+            }
+
+            if (!string.IsNullOrEmpty(month) && DateTime.TryParse(month + "-01", out var selectedMonth))
+            {
+                ticketsQuery = ticketsQuery.Where(t => t.CreatedAt.Month == selectedMonth.Month && t.CreatedAt.Year == selectedMonth.Year);
                 ViewBag.SelectedMonth = month;
                 ViewBag.SelectedMonthName = selectedMonth.ToString("MMMM yyyy");
+            }
+            else
+            {
+                ViewBag.SelectedMonth = "";
+                ViewBag.SelectedMonthName = "All";
             }
 
             var tickets = await ticketsQuery.ToListAsync();
@@ -496,22 +574,50 @@ namespace ITHelpDesk.Controllers
         }
 
 
-
         [HttpPost]
-        public async Task<IActionResult> ExportTickets(string month)
+        public async Task<IActionResult> ExportTickets(string month, int? portId)
         {
-            DateTime selectedMonth;
-            var ticketsQuery = _context.Tickets
+            var user = await _userManager.GetUserAsync(User);
+            bool isManagement = await _userManager.IsInRoleAsync(user, "Management");
+
+            DateTime selectedMonth = DateTime.MinValue;
+            bool monthFilterApplied = !string.IsNullOrEmpty(month) && DateTime.TryParse(month + "-01", out selectedMonth);
+
+            IQueryable<Ticket> ticketsQuery = _context.Tickets
                 .Include(t => t.Status)
                 .Include(t => t.Port)
                 .Include(t => t.Category)
                 .Include(t => t.Subcategory)
                 .Include(t => t.Priority)
                 .Include(t => t.AssignedTechnician)
-                 .Include(t => t.Department)
-                .Where(t => t.PortId != null);
+                .Include(t => t.Department);
 
-            if (!string.IsNullOrEmpty(month) && DateTime.TryParse(month + "-01", out selectedMonth))
+            if (isManagement)
+            {
+                if (portId.HasValue)
+                {
+                    ticketsQuery = ticketsQuery.Where(t => t.PortId == portId.Value);
+                }
+            }
+            else // Technician
+            {
+                var userId = _userManager.GetUserId(User);
+                var technician = await _context.Technicians.FirstOrDefaultAsync(t => t.UserId == userId);
+                if (technician == null)
+                    return BadRequest("Technician not found.");
+
+                var assignedPortIds = await _context.TechnicianPorts
+                    .Where(tp => tp.TechnicianId == technician.Id)
+                    .Select(tp => tp.PortId)
+                    .ToListAsync();
+
+                if (!assignedPortIds.Any())
+                    return BadRequest("No assigned ports.");
+
+                ticketsQuery = ticketsQuery.Where(t => assignedPortIds.Contains(t.PortId));
+            }
+
+            if (monthFilterApplied)
             {
                 ticketsQuery = ticketsQuery
                     .Where(t => t.CreatedAt.Month == selectedMonth.Month && t.CreatedAt.Year == selectedMonth.Year);
@@ -536,12 +642,11 @@ namespace ITHelpDesk.Controllers
                                $"{t.CreatedAt:yyyy-MM-dd}");
             }
 
-            var fileName = $"PortTickets_{(string.IsNullOrEmpty(month) ? "All" : month)}.csv";
+            var fileName = $"PortTickets_{(monthFilterApplied ? month : "All")}_{(portId.HasValue ? "Port" + portId : "TechnicianAssigned")}.csv";
             var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+
             return File(bytes, "text/csv", fileName);
         }
-
-
 
     }
 }
