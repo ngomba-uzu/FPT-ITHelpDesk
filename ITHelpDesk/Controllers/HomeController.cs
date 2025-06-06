@@ -22,7 +22,7 @@ namespace ITHelpDesk.Controllers
             _context = context;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? categoryId)
         {
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return RedirectToAction("Login", "Account");
@@ -33,38 +33,57 @@ namespace ITHelpDesk.Controllers
 
             if (role == "Technical Support")
             {
-                ViewBag.Ports = await _context.Ports
-     .Include(p => p.Tickets)
-         .ThenInclude(t => t.Status)
-     .Include(p => p.TechnicianPorts)
-         .ThenInclude(tp => tp.Technician)
-     .Select(p => new
-     {
-         p.Id,
-         p.PortName,
-         ActiveTickets = p.Tickets.Count(t => t.Status != null && t.Status.StatusName != "Closed"),
-         TechnicianPorts = p.TechnicianPorts
-             .Where(tp => tp.Technician != null)  // Filter null technicians in DB query
-             .Select(tp => new
-             {
-                 FullName = tp.Technician.FullName,
-                 Id = tp.Technician.Id
-             })
-             .ToList(),
-         LastActivity = p.Tickets.Any()
-             ? p.Tickets.Max(t => t.CreatedAt).ToString("g")
-             : "N/A"
-     })
-     .ToListAsync();
+                // Get port filter from query string
+                string portFilter = HttpContext.Request.Query["portFilter"];
 
-                // Escalated tickets
-                ViewBag.EscalatedTickets = await _context.Tickets
+                // Set default value if not provided
+                if (string.IsNullOrEmpty(portFilter)) portFilter = "All Ports";
+
+                // Store in ViewBag for form preservation
+                ViewBag.PortFilter = portFilter;
+
+                ViewBag.Ports = await _context.Ports
+                    .Include(p => p.Tickets)
+                        .ThenInclude(t => t.Status)
+                    .Include(p => p.TechnicianPorts)
+                        .ThenInclude(tp => tp.Technician)
+                    .Select(p => new
+                    {
+                        p.Id,
+                        p.PortName,
+                        ActiveTickets = p.Tickets.Count(t => t.Status != null && t.Status.StatusName != "Closed"),
+                        TechnicianPorts = p.TechnicianPorts
+                            .Where(tp => tp.Technician != null)
+                            .Select(tp => new
+                            {
+                                FullName = tp.Technician.FullName,
+                                Id = tp.Technician.Id
+                            })
+                            .ToList(),
+                        LastActivity = p.Tickets.Any()
+                            ? p.Tickets.Max(t => t.CreatedAt).ToString("g")
+                            : "N/A"
+                    })
+                    .ToListAsync();
+
+                // Escalated tickets with port filtering
+                var escalatedTicketsQuery = _context.Tickets
                     .Include(t => t.Port)
                     .Include(t => t.SeniorTechnician)
-                    .Where(t => t.SeniorTechnicianId != null)
+                    .Where(t => t.SeniorTechnicianId != null);
+
+                // Apply port filter if selected
+                if (portFilter != "All Ports")
+                {
+                    escalatedTicketsQuery = escalatedTicketsQuery
+                        .Where(t => t.Port.PortName == portFilter);
+                }
+
+                ViewBag.EscalatedTickets = await escalatedTicketsQuery
                     .OrderByDescending(t => t.EscalatedDate)
                     .Select(t => new
                     {
+                        t.Id, 
                         t.TicketNumber,
                         PortName = t.Port != null ? t.Port.PortName : "N/A",
                         t.SeniorTechnicianResponse,
@@ -79,7 +98,7 @@ namespace ITHelpDesk.Controllers
 
                 ViewBag.EscalatedTicketsCount = ViewBag.EscalatedTickets.Count;
 
-                // Categories
+                // Categories for dropdown
                 ViewBag.Categories = await _context.Categories
                     .Select(c => new
                     {
@@ -89,8 +108,11 @@ namespace ITHelpDesk.Controllers
                     })
                     .ToListAsync();
 
-                // Subcategories
-                ViewBag.Subcategories = await _context.Subcategories
+                // Store selected category for dropdown selected option
+                ViewBag.SelectedCategoryId = categoryId;
+
+                // Subcategories filtered by selected category if any
+                var subcategoriesQuery = _context.Subcategories
                     .Include(s => s.Category)
                     .Select(s => new
                     {
@@ -98,8 +120,14 @@ namespace ITHelpDesk.Controllers
                         s.SubcategoryName,
                         s.CategoryId,
                         CategoryName = s.Category != null ? s.Category.CategoryName : "N/A"
-                    })
-                    .ToListAsync();
+                    });
+
+                if (categoryId.HasValue)
+                {
+                    subcategoriesQuery = subcategoriesQuery.Where(s => s.CategoryId == categoryId.Value);
+                }
+
+                ViewBag.Subcategories = await subcategoriesQuery.ToListAsync();
 
                 // Technicians without phone and employee ID
                 ViewBag.Technicians = await _context.Technicians

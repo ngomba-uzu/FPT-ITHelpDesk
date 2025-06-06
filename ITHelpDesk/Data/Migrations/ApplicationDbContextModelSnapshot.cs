@@ -148,7 +148,17 @@ namespace ITHelpDesk.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("PortId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TechnicianGroupId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("PortId");
+
+                    b.HasIndex("TechnicianGroupId");
 
                     b.ToTable("SeniorTechnicians", (string)null);
                 });
@@ -244,12 +254,7 @@ namespace ITHelpDesk.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("SeniorTechnicianId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("SeniorTechnicianId");
 
                     b.ToTable("TechnicianGroups", (string)null);
                 });
@@ -304,7 +309,7 @@ namespace ITHelpDesk.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("DepartmentId")
+                    b.Property<int?>("DepartmentId")
                         .HasColumnType("int");
 
                     b.Property<string>("Description")
@@ -343,9 +348,6 @@ namespace ITHelpDesk.Data.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("PortId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("PortId1")
                         .HasColumnType("int");
 
                     b.Property<int>("PriorityId")
@@ -399,8 +401,6 @@ namespace ITHelpDesk.Data.Migrations
                     b.HasIndex("ManuallyAssignedToId");
 
                     b.HasIndex("PortId");
-
-                    b.HasIndex("PortId1");
 
                     b.HasIndex("PriorityId");
 
@@ -687,6 +687,21 @@ namespace ITHelpDesk.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("ITHelpDesk.Models.SeniorTechnician", b =>
+                {
+                    b.HasOne("ITHelpDesk.Models.Port", "Port")
+                        .WithMany()
+                        .HasForeignKey("PortId");
+
+                    b.HasOne("ITHelpDesk.Models.TechnicianGroup", "TechnicianGroup")
+                        .WithMany()
+                        .HasForeignKey("TechnicianGroupId");
+
+                    b.Navigation("Port");
+
+                    b.Navigation("TechnicianGroup");
+                });
+
             modelBuilder.Entity("ITHelpDesk.Models.Subcategory", b =>
                 {
                     b.HasOne("ITHelpDesk.Models.Category", "Category")
@@ -709,7 +724,7 @@ namespace ITHelpDesk.Data.Migrations
             modelBuilder.Entity("ITHelpDesk.Models.Technician", b =>
                 {
                     b.HasOne("ITHelpDesk.Models.TechnicianGroup", "TechnicianGroup")
-                        .WithMany("Technicians")
+                        .WithMany()
                         .HasForeignKey("TechnicianGroupId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -723,17 +738,6 @@ namespace ITHelpDesk.Data.Migrations
                     b.Navigation("TechnicianGroup");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("ITHelpDesk.Models.TechnicianGroup", b =>
-                {
-                    b.HasOne("ITHelpDesk.Models.SeniorTechnician", "SeniorTechnician")
-                        .WithMany()
-                        .HasForeignKey("SeniorTechnicianId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("SeniorTechnician");
                 });
 
             modelBuilder.Entity("ITHelpDesk.Models.TechnicianPort", b =>
@@ -758,7 +762,7 @@ namespace ITHelpDesk.Data.Migrations
             modelBuilder.Entity("ITHelpDesk.Models.Ticket", b =>
                 {
                     b.HasOne("ITHelpDesk.Models.Technician", "AssignedTechnician")
-                        .WithMany()
+                        .WithMany("Tickets")
                         .HasForeignKey("AssignedTechnicianId");
 
                     b.HasOne("ITHelpDesk.Models.Category", "Category")
@@ -774,22 +778,17 @@ namespace ITHelpDesk.Data.Migrations
                     b.HasOne("ITHelpDesk.Models.Department", "Department")
                         .WithMany()
                         .HasForeignKey("DepartmentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("ITHelpDesk.Models.Technician", "ManuallyAssignedTo")
                         .WithMany()
                         .HasForeignKey("ManuallyAssignedToId");
 
                     b.HasOne("ITHelpDesk.Models.Port", "Port")
-                        .WithMany()
+                        .WithMany("Tickets")
                         .HasForeignKey("PortId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("ITHelpDesk.Models.Port", null)
-                        .WithMany("Tickets")
-                        .HasForeignKey("PortId1");
 
                     b.HasOne("ITHelpDesk.Models.Priority", "Priority")
                         .WithMany()
@@ -927,11 +926,8 @@ namespace ITHelpDesk.Data.Migrations
             modelBuilder.Entity("ITHelpDesk.Models.Technician", b =>
                 {
                     b.Navigation("TechnicianPorts");
-                });
 
-            modelBuilder.Entity("ITHelpDesk.Models.TechnicianGroup", b =>
-                {
-                    b.Navigation("Technicians");
+                    b.Navigation("Tickets");
                 });
 #pragma warning restore 612, 618
         }

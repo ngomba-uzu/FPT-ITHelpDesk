@@ -28,23 +28,25 @@ namespace ITHelpDesk.Controllers
         // GET: SeniorTechnicians
         public async Task<IActionResult> Index()
         {
-            return View(await _context.SeniorTechnicians.ToListAsync());
+            var seniorTechnicians = await _context.SeniorTechnicians
+                .Include(s => s.TechnicianGroup)
+                .Include(s => s.Port)
+                .ToListAsync();
+
+            return View(seniorTechnicians);
         }
 
         // GET: SeniorTechnicians/Details/5
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var seniorTechnician = await _context.SeniorTechnicians
+                .Include(s => s.TechnicianGroup)
+                .Include(s => s.Port)
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (seniorTechnician == null)
-            {
-                return NotFound();
-            }
+
+            if (seniorTechnician == null) return NotFound();
 
             return View(seniorTechnician);
         }
@@ -52,15 +54,15 @@ namespace ITHelpDesk.Controllers
         // GET: SeniorTechnicians/Create
         public IActionResult Create()
         {
+            ViewBag.TechnicianGroupId = new SelectList(_context.TechnicianGroups, "Id", "GroupName");
+            ViewBag.PortId = new SelectList(_context.Ports, "Id", "PortName");
             return View();
         }
 
         // POST: SeniorTechnicians/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,FullName,Email")] SeniorTechnician seniorTechnician)
+        public async Task<IActionResult> Create([Bind("Id,FullName,Email,TechnicianGroupId,PortId")] SeniorTechnician seniorTechnician)
         {
             if (ModelState.IsValid)
             {
@@ -68,36 +70,31 @@ namespace ITHelpDesk.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
+            ViewBag.TechnicianGroupId = new SelectList(_context.TechnicianGroups, "Id", "GroupName", seniorTechnician.TechnicianGroupId);
+            ViewBag.PortId = new SelectList(_context.Ports, "Id", "PortName", seniorTechnician.PortId);
             return View(seniorTechnician);
         }
 
         // GET: SeniorTechnicians/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var seniorTechnician = await _context.SeniorTechnicians.FindAsync(id);
-            if (seniorTechnician == null)
-            {
-                return NotFound();
-            }
+            if (seniorTechnician == null) return NotFound();
+
+            ViewBag.TechnicianGroupId = new SelectList(_context.TechnicianGroups, "Id", "GroupName", seniorTechnician.TechnicianGroupId);
+            ViewBag.PortId = new SelectList(_context.Ports, "Id", "PortName", seniorTechnician.PortId);
             return View(seniorTechnician);
         }
 
         // POST: SeniorTechnicians/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,FullName,Email")] SeniorTechnician seniorTechnician)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,FullName,Email,TechnicianGroupId,PortId")] SeniorTechnician seniorTechnician)
         {
             if (id != seniorTechnician.Id)
-            {
                 return NotFound();
-            }
 
             if (ModelState.IsValid)
             {
@@ -109,33 +106,29 @@ namespace ITHelpDesk.Controllers
                 catch (DbUpdateConcurrencyException)
                 {
                     if (!SeniorTechnicianExists(seniorTechnician.Id))
-                    {
                         return NotFound();
-                    }
                     else
-                    {
                         throw;
-                    }
                 }
                 return RedirectToAction(nameof(Index));
             }
+
+            ViewBag.TechnicianGroupId = new SelectList(_context.TechnicianGroups, "Id", "GroupName", seniorTechnician.TechnicianGroupId);
+            ViewBag.PortId = new SelectList(_context.Ports, "Id", "PortName", seniorTechnician.PortId);
             return View(seniorTechnician);
         }
 
         // GET: SeniorTechnicians/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var seniorTechnician = await _context.SeniorTechnicians
+                .Include(s => s.TechnicianGroup)
+                .Include(s => s.Port)
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (seniorTechnician == null)
-            {
-                return NotFound();
-            }
+
+            if (seniorTechnician == null) return NotFound();
 
             return View(seniorTechnician);
         }
@@ -149,9 +142,8 @@ namespace ITHelpDesk.Controllers
             if (seniorTechnician != null)
             {
                 _context.SeniorTechnicians.Remove(seniorTechnician);
+                await _context.SaveChangesAsync();
             }
-
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
@@ -159,6 +151,7 @@ namespace ITHelpDesk.Controllers
         {
             return _context.SeniorTechnicians.Any(e => e.Id == id);
         }
+
 
         public async Task<IActionResult> ReviewEscalatedTicket(int id)
         {

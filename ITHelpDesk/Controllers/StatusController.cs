@@ -54,7 +54,7 @@ namespace ITHelpDesk.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,StatusName,EscalationThresholdInMinutes")] Status status)
+        public async Task<IActionResult> Create([Bind("Id,StatusName")] Status status)
         {
             if (ModelState.IsValid)
             {
@@ -86,7 +86,7 @@ namespace ITHelpDesk.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,StatusName,EscalationThresholdInMinutes")] Status status)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,StatusName")] Status status)
         {
             if (id != status.Id)
             {

@@ -13,5 +13,6 @@
         public ApplicationUser User { get; set; }
         public TechnicianGroup TechnicianGroup { get; set; }
         public Ticket Ticket { get; set; }
+     
     }
 }

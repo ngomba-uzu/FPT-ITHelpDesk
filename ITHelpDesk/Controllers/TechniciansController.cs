@@ -362,51 +362,83 @@ namespace ITHelpDesk.Controllers
                 return Content("You are not assigned to any ports. Please contact admin.");
             }
 
-            var twoMinutesAgo = DateTime.Now.AddMinutes(-2);
+            var oneHourAgo = DateTime.Now.AddHours(-1);
 
-            // Load unassigned, high-priority tickets that are older than 2 minutes and not escalated
+            // Get unassigned, high-priority tickets older than 1 hour, not auto escalated
             var escalatedTickets = await _context.Tickets
-          .Where(t => t.AssignedTechnicianId == null &&
-                      t.CreatedAt <= twoMinutesAgo &&
-                      t.Priority.PriorityName.ToLower() == "high" &&
-                      !t.IsAutoEscalated &&
-                      subcategoryIds.Contains(t.SubcategoryId) &&
-                      technicianPortIds.Contains(t.PortId))
-          .Include(t => t.Priority)
-          .Include(t => t.Subcategory)
-              .ThenInclude(sc => sc.TechnicianGroup)
-                  .ThenInclude(tg => tg.SeniorTechnician)
-          .ToListAsync();
+                .Where(t => t.AssignedTechnicianId == null &&
+                            t.CreatedAt <= oneHourAgo &&
+                            t.Priority.PriorityName.ToLower() == "high" &&
+                            !t.IsAutoEscalated &&
+                            subcategoryIds.Contains(t.SubcategoryId) &&
+                            technicianPortIds.Contains(t.PortId))
+                .Include(t => t.Priority)
+                .Include(t => t.Subcategory)
+                .ToListAsync();
+
+            // Get unique nullable TechnicianGroupIds and PortIds from tickets (List<int?>)
+            var technicianGroupIds = escalatedTickets
+                .Select(t => t.Subcategory.TechnicianGroupId)
+                .Distinct()
+                .ToList();
+
+            var portIds = escalatedTickets
+                .Select(t => t.PortId)
+                .Distinct()
+                .ToList();
+
+            // Load senior technicians matching those nullable TechnicianGroupIds and PortIds,
+            // but filter out nulls from st.TechnicianGroupId and st.PortId before Contains check
+            var seniorTechnicians = await _context.SeniorTechnicians
+                .Where(st => st.TechnicianGroupId.HasValue
+                          && technicianGroupIds.Contains(st.TechnicianGroupId.Value)
+                          && st.PortId.HasValue
+                          && portIds.Contains(st.PortId.Value))
+                .ToListAsync();
+
+            // Build a dictionary: (TechnicianGroupId, PortId) -> SeniorTechnician
+            var seniorMap = seniorTechnicians
+                .GroupBy(st => new { st.TechnicianGroupId, st.PortId }) // Both are int? here
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.First()
+                );
+
+            // Pair tickets with their senior technician
+            var seniorTicketPairs = new List<(SeniorTechnician Senior, Ticket Ticket)>();
+            foreach (var ticket in escalatedTickets)
+            {
+                // Also create the key with nullable types (int?)
+                var key = new { TechnicianGroupId = (int?)ticket.Subcategory.TechnicianGroupId, PortId = (int?)ticket.PortId };
+                if (seniorMap.TryGetValue(key, out var senior))
+                {
+                    seniorTicketPairs.Add((senior, ticket));
+                }
+            }
 
 
-            // Group tickets by Senior Technician
-            var groupedTickets = escalatedTickets
-                .Where(t => t.Subcategory?.TechnicianGroup?.SeniorTechnician != null)
-                .GroupBy(t => t.Subcategory.TechnicianGroup.SeniorTechnician);
+            // Group tickets by senior technician
+            var groupedBySenior = seniorTicketPairs
+                .GroupBy(pair => pair.Senior);
 
-            foreach (var group in groupedTickets)
+            foreach (var group in groupedBySenior)
             {
                 var senior = group.Key;
-
                 var message = new StringBuilder();
                 message.AppendLine($"Dear {senior.FullName},");
                 message.AppendLine("<br/><br/>The following high-priority ticket(s) have not been attended for over an hour:");
 
-                foreach (var ticket in group)
+                foreach (var pair in group)
                 {
+                    var ticket = pair.Ticket;
                     message.AppendLine($"<br/>- Ticket {ticket.TicketNumber}, Created: {ticket.CreatedAt:g}");
+                    ticket.IsAutoEscalated = true; // Mark as auto escalated
                 }
 
                 message.AppendLine("<br/><br/>Please take necessary action.");
                 message.AppendLine("<br/><br/>Regards,<br/>Ticketing System");
 
                 await _emailSender.SendEmailAsync(senior.Email, "Escalation: Unassigned High-Priority Tickets", message.ToString());
-
-                // Mark these tickets as auto escalated
-                foreach (var ticket in group)
-                {
-                    ticket.IsAutoEscalated = true;
-                }
             }
 
             if (escalatedTickets.Any())
@@ -442,11 +474,6 @@ namespace ITHelpDesk.Controllers
 
             return View(tickets);
         }
-
-
-
-
-
 
         // POST: AssignToMe
         [HttpPost]
@@ -616,23 +643,8 @@ namespace ITHelpDesk.Controllers
         <p>A technician attempted resolution but marked it as failed. Please follow up with the IT department for further assistance.</p>
         <p>Thank you,<br/>IT HelpDesk Team</p>";
                 }
-
-                // ✅ Always send to requester if different from technician
-                if (ticket.Email != User.Identity.Name)
-                {
-                    await _emailSender.SendEmailAsync(ticket.Email, subject, body);
-                }
-
-                // ✅ Also send to creator (if different)
-                if (ticket.CreatedBy != null)
-                {
-                    var user = await _context.Users.FindAsync(ticket.CreatedBy);
-                    if (user != null && user.Email != ticket.Email && user.Email != User.Identity.Name)
-                    {
-                        await _emailSender.SendEmailAsync(user.Email, subject, body);
-                    }
-                }
-
+                // ✅ Always send email to the user (requester) only
+                await _emailSender.SendEmailAsync(ticket.Email, subject, body);
 
                 return RedirectToAction("ClosedTickets");
             }
@@ -716,19 +728,28 @@ namespace ITHelpDesk.Controllers
 
             foreach (var ticket in closedTickets)
             {
-                bool notificationExists = await _context.Notifications.AnyAsync(n =>
-                    n.TicketId == ticket.Id &&
-                    n.UserId == ticket.CreatedBy &&
-                    n.Message.Contains("has been closed")
-                );
+                var creator = await _context.Users.FindAsync(ticket.CreatedBy);
 
-                if (!notificationExists)
+                // Check if the creator has a technician role
+                var roles = await _userManager.GetRolesAsync(creator);
+
+                bool isTechnician = roles.Contains("Technician");
+
+                if (!isTechnician)
                 {
-                    await _notificationService.CreateUserNotification(
-                        ticket.CreatedBy,
-                        $"Your ticket #{ticket.TicketNumber} has been closed",
-                        ticket.Id
-                    );
+                    bool notificationExists = await _context.Notifications.AnyAsync(n =>
+                        n.TicketId == ticket.Id &&
+                        n.UserId == ticket.CreatedBy &&
+                        n.Message.Contains("has been closed"));
+
+                    if (!notificationExists)
+                    {
+                        await _notificationService.CreateUserNotification(
+                            ticket.CreatedBy,
+                            $"Your ticket {ticket.TicketNumber} has been closed",
+                            ticket.Id
+                        );
+                    }
                 }
             }
 

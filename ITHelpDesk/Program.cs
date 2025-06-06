@@ -30,6 +30,9 @@ builder.Services.AddTransient<MailKitEmailSender>();
 builder.Services.AddTransient<IEmailSender, EmailSender>();
 builder.Services.AddScoped<NotificationService>();
 
+builder.Services.AddHostedService<TicketEscalationService>();
+
+
 // MailKit configuration
 builder.Services.Configure<MailKitEmailSenderOptions>(options =>
 {

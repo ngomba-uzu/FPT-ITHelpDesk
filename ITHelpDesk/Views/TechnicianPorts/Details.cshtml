@@ -1,30 +1,75 @@
 ﻿@model ITHelpDesk.Models.TechnicianPort
 
 @{
-    ViewData["Title"] = "Details";
+    Layout = "_Layout";
+    ViewData["Title"] = "TechnicianPort Details";
 }
 
-<h1>Details</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - FPT HelpDesk</title>
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
 
-<div>
-    <h4>TechnicianPort</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Technician)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Technician.FullName)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Port)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Port.PortName)
-        </dd>
-    </dl>
-</div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
-    <a asp-action="Index">Back to List</a>
-</div>
+        .card {
+            border-radius: var(--border-radius, 8px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: none;
+        }
+
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            font-weight: 600;
+            padding: 15px 20px;
+        }
+
+        .detail-row {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+            .detail-row:last-child {
+                border-bottom: none;
+            }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">TechnicianPort Details</h5>
+                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-primary">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        <div class="detail-row">
+                            <h6>Technician</h6>
+                            <p class="mb-0">@Model.Technician?.FullName</p>
+                        </div>
+                        <div class="detail-row">
+                            <h6>Port</h6>
+                            <p class="mb-0">@Model.Port?.PortName</p>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to List
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

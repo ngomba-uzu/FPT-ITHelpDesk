@@ -1,39 +1,91 @@
 ﻿@model ITHelpDesk.Models.TechnicianPort
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Edit Technician Port";
 }
 
-<h1>Edit</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - FPT IT HelpDesk</title>
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
 
-<h4>TechnicianPort</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="Id" />
-            <div class="form-group">
-                <label asp-for="TechnicianId" class="control-label"></label>
-                <select asp-for="TechnicianId" class="form-control" asp-items="ViewBag.TechnicianId"></select>
-                <span asp-validation-for="TechnicianId" class="text-danger"></span>
+        .card {
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: none;
+        }
+
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            font-weight: 600;
+            padding: 15px 20px;
+        }
+
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .form-control {
+            border-radius: var(--border-radius);
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Edit Technician Port</h5>
+                    </div>
+                    <div class="card-body">
+                        <form asp-action="Edit" method="post">
+                            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                            <input type="hidden" asp-for="Id" />
+
+                            <div class="mb-3">
+                                <label asp-for="TechnicianId" class="form-label"></label>
+                                <select asp-for="TechnicianId" class="form-control" asp-items="ViewBag.TechnicianId">
+                                    <option value="">-- Select Technician --</option>
+                                </select>
+                                <span asp-validation-for="TechnicianId" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="PortId" class="form-label"></label>
+                                <select asp-for="PortId" class="form-control" asp-items="ViewBag.PortId">
+                                    <option value="">-- Select Port --</option>
+                                </select>
+                                <span asp-validation-for="PortId" class="text-danger"></span>
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <a asp-action="Index" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left"></i> Back to List
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
-            <div class="form-group">
-                <label asp-for="PortId" class="control-label"></label>
-                <select asp-for="PortId" class="form-control" asp-items="ViewBag.PortId"></select>
-                <span asp-validation-for="PortId" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
-            </div>
-        </form>
+        </div>
     </div>
-</div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
+    @section Scripts {
+        <partial name="_ValidationScriptsPartial" />
+    }
+</body>
+</html>
 
-@section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-}

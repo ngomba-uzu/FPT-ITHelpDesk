@@ -60,7 +60,8 @@
                                 <td class="text-truncate" style="max-width: 200px;" title="@item.Description">
                                     @item.Description
                                 </td>
-                                <td>@item.Department?.DepartmentName</td>
+                                <td>@(item.Department?.DepartmentName ?? "N/A")</td>
+
                                 <td>
                                     <span class="badge bg-secondary">@item.Category?.CategoryName</span>
                                     @if (!string.IsNullOrEmpty(item.Subcategory?.SubcategoryName))

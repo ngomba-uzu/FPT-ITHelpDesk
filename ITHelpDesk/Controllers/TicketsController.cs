@@ -105,7 +105,7 @@ namespace ITHelpDesk.Controllers
             var ticket = new Ticket();
 
             // Only pre-fill for non-technician roles
-            if (!User.IsInRole("Technician") && !User.IsInRole("TechnicalSupport"))
+            if (!User.IsInRole("Technician") && !User.IsInRole("Technical Support") && !User.IsInRole("Management"))
             {
                 ticket.RequesterName = appUser.FullName;
                 ticket.Email = appUser.Email;
@@ -114,7 +114,7 @@ namespace ITHelpDesk.Controllers
             }
 
             // Load technicians for manual assignment dropdown if user is technician/tech support
-            if (User.IsInRole("Technician") || User.IsInRole("TechnicalSupport"))
+            if (User.IsInRole("Technician") || User.IsInRole("Technical Support") || User.IsInRole("Management"))
             {
                 ViewBag.Technicians = new SelectList(
                     await _context.Technicians.ToListAsync(),
@@ -252,13 +252,13 @@ namespace ITHelpDesk.Controllers
                 // Now that we have the ticket number, we can send the email
                 if (showTechnicianFields && ticket.ManuallyAssignedToId.HasValue && !string.IsNullOrEmpty(ticket.EmailToNotify))
                 {
-                    var subject = $"Ticket Created: {ticket.TicketNumber}";
+                    var subject = $"New Ticket Manually Created: {ticket.TicketNumber}";
                     var body = $@"
-                <h3>A ticket has been created on your behalf</h3>
-                <p><strong>Ticket Number:</strong> {ticket.TicketNumber}</p>
-                <p><strong>Assigned To:</strong> {assignedTech?.FullName ?? "Technician"}</p>
-                <p><strong>Description:</strong> {ticket.Description}</p>
-                <p>You will be updated on the progress of this ticket.</p>";
+                     <h3>A new ticket has been manually created and assigned.</h3>
+                     <p><strong>Ticket Number:</strong> {ticket.TicketNumber}</p>
+                     <p><strong>Assigned To:</strong> {assignedTech?.FullName ?? "Technician"}</p>
+                     <p><strong>Description:</strong> {ticket.Description}</p>
+                     <p>Please check the ticket details and proceed as needed.</p>";
 
                     await _emailSender.SendEmailAsync(ticket.EmailToNotify, subject, body);
                 }
@@ -270,14 +270,27 @@ namespace ITHelpDesk.Controllers
                         .Include(t => t.Priority)
                         .FirstOrDefaultAsync(t => t.Id == ticket.Id);
 
-                    if (ticket.Priority?.PriorityName == "High" && ticket.TechnicianGroupId > 0)
+                    if (ticket.Priority?.PriorityName == "High"
+                         && ticket.TechnicianGroupId > 0
+                          && ticket.PortId > 0)
                     {
-                        await _notificationService.CreateGroupNotification(
-                            ticket.TechnicianGroupId,
-                            $"🚨 High priority ticket {ticket.TicketNumber}",
-                            ticket.Id
-                        );
+                        // Get only technicians in the group and assigned to the port
+                        var techniciansToNotify = await _context.Technicians
+                            .Where(t => t.TechnicianGroupId == ticket.TechnicianGroupId)
+                            .Where(t => t.TechnicianPorts.Any(tp => tp.PortId == ticket.PortId))
+                            .ToListAsync();
+
+                        foreach (var technician in techniciansToNotify)
+                        {
+                            // Assuming you have a method to create individual notifications
+                            await _notificationService.CreateTechnicianNotification(
+                                technician.Id,
+                                $"🚨 High priority ticket {ticket.TicketNumber}",
+                                ticket.Id
+                            );
+                        }
                     }
+
 
                     var matchingTechs = await _context.Technicians
                         .Include(t => t.TechnicianPorts)
@@ -290,16 +303,15 @@ namespace ITHelpDesk.Controllers
                         var subject = $"New Ticket Created: {ticket.TicketNumber}";
                         var ticketLink = Url.Action("Details", "Ticket", new { id = ticket.Id }, protocol: Request.Scheme);
                         var body = $@"
-<p>A new support ticket has been submitted:</p>
-<ul>
-    <li><strong>Ticket Number:</strong> {ticket.TicketNumber}</li>
-    <li><strong>Description:</strong> {ticket.Description}</li>
-    <li><strong>Priority:</strong> {ticket.Priority?.PriorityName ?? "N/A"}</li>
-    <li><strong>Submitted By:</strong> {ticket.RequesterName}</li>
-    <li><strong>Date:</strong> {ticket.CreatedAt:yyyy/MM/dd HH:mm:ss}</li>
-</ul>
-<p><a href='{ticketLink}'>Click here to view this ticket</a> (requires login).</p>     
-<p>Please log in to the system to view and assign the ticket.</p>";
+                        <p>A new support ticket has been submitted:</p>
+                        <ul>
+                           <li><strong>Ticket Number:</strong> {ticket.TicketNumber}</li>
+                           <li><strong>Description:</strong> {ticket.Description}</li>
+                           <li><strong>Priority:</strong> {ticket.Priority?.PriorityName ?? "N/A"}</li>
+                           <li><strong>Submitted By:</strong> {ticket.RequesterName}</li>
+                           <li><strong>Date:</strong> {ticket.CreatedAt:yyyy/MM/dd HH:mm:ss}</li>
+                        </ul>  
+                        <p>Please log in to the system to view and assign the ticket.</p>";
 
 
                         foreach (var tech in matchingTechs)
@@ -385,6 +397,18 @@ namespace ITHelpDesk.Controllers
 
             return Json(technicians);
         }
+
+        [HttpGet]
+        public JsonResult GetTechnicianEmail(int technicianId)
+        {
+            var technician = _context.Technicians.FirstOrDefault(t => t.Id == technicianId);
+            if (technician != null)
+            {
+                return Json(new { email = technician.Email });
+            }
+            return Json(new { email = "" });
+        }
+
 
 
         // GET: Tickets/Edit/5

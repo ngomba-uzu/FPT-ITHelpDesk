@@ -6,72 +6,118 @@
     var usersJson = ViewBag.UsersJson;
 }
 
-<h1>Create Technician</h1>
-<hr />
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - FPT IT HelpDesk</title>
 
-<form asp-action="Create" method="post">
-    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-    <div class="form-group">
-        <label asp-for="UserId" class="control-label">Select Registered User</label>
-        <select asp-for="UserId" class="form-control" asp-items="ViewBag.Users" onchange="populateUserDetails(this)">
-            <option value="">Select User</option>
-        </select>
-        <span asp-validation-for="UserId" class="text-danger"></span>
-    </div>
-
-    <div class="form-group">
-        <label asp-for="FullName" class="control-label">Full Name</label>
-        <input asp-for="FullName" class="form-control" readonly id="FullName" />
-        <span asp-validation-for="FullName" class="text-danger"></span>
-    </div>
-
-    <div class="form-group">
-        <label asp-for="Email" class="control-label">Email</label>
-        <input asp-for="Email" class="form-control" readonly id="Email" />
-        <span asp-validation-for="Email" class="text-danger"></span>
-    </div>
-
-    <div class="form-group">
-        <label asp-for="TechnicianGroupId" class="control-label">Technician Group</label>
-        <select asp-for="TechnicianGroupId" class="form-control" asp-items="ViewBag.TechnicianGroups">
-            <option value="">Select Technician Group</option>
-        </select>
-        <span asp-validation-for="TechnicianGroupId" class="text-danger"></span>
-    </div>
-
-    <div class="form-group">
-        <input type="submit" value="Create Technician" class="btn btn-primary" />
-    </div>
-</form>
-
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
-@section Scripts {
-    @await Html.PartialAsync("_ValidationScriptsPartial")
-    <script>
-        // Access the users list in JavaScript
-        const users = @Html.Raw(ViewBag.UsersJson);
-
-        // Function to populate FullName and Email based on the selected UserId
-        function populateUserDetails(select) {
-            const userId = select.value;
-            const selectedUser = users.find(u => u.Id === userId);
-
-            document.getElementById("FullName").value = selectedUser ? selectedUser.FullName : '';
-            document.getElementById("Email").value = selectedUser ? selectedUser.Email : '';
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 20px;
         }
 
-        // Call populateUserDetails when the page loads if a user is selected
-        window.onload = function () {
-            const select = document.querySelector("select[name='UserId']");
-            if (select && select.value) {
-                populateUserDetails(select);
-            }
-        };
-    </script>
+        .card {
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: none;
+        }
 
-    
-}
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            font-weight: 600;
+            padding: 15px 20px;
+        }
+
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .form-control {
+            border-radius: var(--border-radius);
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Create Technician</h5>
+                    </div>
+                    <div class="card-body">
+                        <form asp-action="Create" method="post">
+                            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                            <div class="mb-3">
+                                <label asp-for="UserId" class="form-label">Select Registered User</label>
+                                <select asp-for="UserId" class="form-control" asp-items="ViewBag.Users" onchange="populateUserDetails(this)">
+                                    <option value="">Select User</option>
+                                </select>
+                                <span asp-validation-for="UserId" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="FullName" class="form-label">Full Name</label>
+                                <input asp-for="FullName" class="form-control" readonly id="FullName" />
+                                <span asp-validation-for="FullName" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Email" class="form-label">Email</label>
+                                <input asp-for="Email" class="form-control" readonly id="Email" />
+                                <span asp-validation-for="Email" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="TechnicianGroupId" class="form-label">Technician Group</label>
+                                <select asp-for="TechnicianGroupId" class="form-control" asp-items="ViewBag.TechnicianGroups">
+                                    <option value="">Select Technician Group</option>
+                                </select>
+                                <span asp-validation-for="TechnicianGroupId" class="text-danger"></span>
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <a asp-action="Index" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left"></i> Back to List
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Create Technician
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @section Scripts {
+        <partial name="_ValidationScriptsPartial" />
+        <script>
+            const users = @Html.Raw(ViewBag.UsersJson);
+
+            function populateUserDetails(select) {
+                const userId = select.value;
+                const selectedUser = users.find(u => u.Id === userId);
+
+                document.getElementById("FullName").value = selectedUser ? selectedUser.FullName : '';
+                document.getElementById("Email").value = selectedUser ? selectedUser.Email : '';
+            }
+
+            window.onload = function () {
+                const select = document.querySelector("select[name='UserId']");
+                if (select && select.value) {
+                    populateUserDetails(select);
+                }
+            };
+        </script>
+    }
+</body>
+</html>
+

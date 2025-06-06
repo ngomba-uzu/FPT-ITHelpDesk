@@ -25,9 +25,9 @@ namespace ITHelpDesk.Models
         [Required]
         [Display(Name = "Port")]
         public int PortId { get; set; }
-        [Required]
+      
         [Display(Name = "Department")]
-        public int DepartmentId { get; set; }
+        public int? DepartmentId { get; set; }
         [Required]
         [Display(Name = "Category")]
         public int CategoryId { get; set; }
@@ -63,7 +63,7 @@ namespace ITHelpDesk.Models
         public Status Status { get; set; }
 
         [ValidateNever]
-        public bool? IsResolutionAcknowledged { get; set; } // null = pending, true = yes, false = no
+        public bool? IsResolutionAcknowledged { get; set; } 
 
         public DateTime? ClosedDate { get; set; }
 
@@ -81,8 +81,8 @@ namespace ITHelpDesk.Models
 
         [ValidateNever]
         public string? EscalateReason { get; set; }
-        public int? SeniorTechnicianId { get; set; } // who the ticket was escalated to
-        public string? SeniorTechnicianResponse { get; set; } // response added by senior tech
+        public int? SeniorTechnicianId { get; set; } 
+        public string? SeniorTechnicianResponse { get; set; } 
         public int? ClosedByTechnicianId { get; set; }
         [ValidateNever]
         public Technician ClosedByTechnician { get; set; }

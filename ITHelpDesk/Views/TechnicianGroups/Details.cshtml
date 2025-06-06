@@ -1,33 +1,76 @@
 ﻿@model ITHelpDesk.Models.TechnicianGroup
 
 @{
-    ViewData["Title"] = "Details";
     Layout = "_Layout";
+    ViewData["Title"] = "Technician Group Details";
 }
 
-<h1>Technician Group Details</h1>
-<hr />
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - FPT HelpDesk</title>
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
 
-<div>
-    <h4>Group Name: @Model.GroupName</h4>
+        .card {
+            border-radius: var(--border-radius, 8px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: none;
+        }
 
-    <h5>Assigned Technicians:</h5>
-    @if (Model.Technicians != null && Model.Technicians.Any())
-    {
-        <ul>
-            @foreach (var tech in Model.Technicians)
-            {
-                <li>@tech.FullName</li>
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            font-weight: 600;
+            padding: 15px 20px;
+        }
+
+        .detail-row {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+            .detail-row:last-child {
+                border-bottom: none;
             }
-        </ul>
-    }
-    else
-    {
-        <p><em>No technicians assigned.</em></p>
-    }
-</div>
 
-<div>
-    <a asp-action="Edit" asp-route-id="@Model.Id">Edit</a> |
-    <a asp-action="Index">Back to List</a>
-</div>
+        .technicians-list {
+            list-style-type: disc;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Technician Group Details</h5>
+                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-primary">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        <div class="detail-row">
+                            <h6>Group Name</h6>
+                            <p class="mb-0">@Model.GroupName</p>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to List
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

@@ -73,6 +73,8 @@ namespace ITHelpDesk.Data
                 .HasMany(t => t.Tickets)
                 .WithOne(t => t.AssignedTechnician)
                 .HasForeignKey(t => t.AssignedTechnicianId);
+
+
         }
     }
 }

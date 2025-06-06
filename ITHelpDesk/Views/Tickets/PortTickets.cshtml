@@ -77,7 +77,8 @@
                             <tr>
                                 <td class="fw-bold">@ticket.TicketNumber</td>
                                 <td>@ticket.RequesterName</td>
-                                <td>@ticket.Department?.DepartmentName</td>
+                                <td>@(ticket.Department?.DepartmentName ?? "N/A")</td>
+
                                 <td>
                                     <span class="badge bg-secondary">@ticket.Port?.PortName</span>
                                 </td>

@@ -7,8 +7,9 @@
     ViewData["Title"] = "Create Ticket";
     var user = await UserManager.GetUserAsync(User);
     var isTechnician = await UserManager.IsInRoleAsync(user, "Technician");
-    var isTechnicalSupport = await UserManager.IsInRoleAsync(user, "TechnicalSupport");
-    var showTechnicianFields = isTechnician || isTechnicalSupport;
+    var isTechnicalSupport = await UserManager.IsInRoleAsync(user, "Technical Support");
+    var isManagement = await UserManager.IsInRoleAsync(user, "Management");
+    var showTechnicianFields = isTechnician || isTechnicalSupport || isManagement;
 }
 <div class="card">
     <div class="card-header">
@@ -76,16 +77,17 @@
                     </div>
                     <div class="col-md-4">
                         <label>Assign To</label>
-                        <select asp-for="ManuallyAssignedToId" class="form-control" asp-items="ViewBag.Technicians">
+                        <select id="ManuallyAssignedToId" asp-for="ManuallyAssignedToId" class="form-control" asp-items="ViewBag.Technicians">
                             <option value="">Select Technician</option>
                         </select>
                         <span asp-validation-for="ManuallyAssignedToId" class="text-danger"></span>
                     </div>
                     <div class="col-md-4">
                         <label>Email to Notify</label>
-                        <input asp-for="EmailToNotify" class="form-control" />
+                        <input id="EmailToNotify" asp-for="EmailToNotify" class="form-control" />
                         <span asp-validation-for="EmailToNotify" class="text-danger"></span>
                     </div>
+
                 </div>
                 <div class="row">
                     <div class="col-md-4">
@@ -192,69 +194,161 @@
     .form-control {
         margin-bottom: 1rem;
     }
+
+    .select2-container--default.select2-container {
+        width: 100% !important; /* Make sure it fills the parent */
+    }
+
+    .select2-container .select2-selection--single {
+        height: 38px !important; /* Bootstrap height */
+        padding: 6px 38px 6px 12px !important; /* right padding for arrow */
+        border: 1px solid #ced4da !important;
+        border-radius: 0.25rem !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+        white-space: nowrap !important;
+        text-overflow: ellipsis !important;
+        display: flex !important;
+        align-items: center !important; /* vertically center */
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 26px !important;
+        color: #495057 !important;
+        overflow: hidden !important;
+        white-space: nowrap !important;
+        text-overflow: ellipsis !important;
+        width: 100% !important; /* allow full width */
+        display: block !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px !important;
+        top: 5px !important;
+        right: 10px !important;
+        width: 20px !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered.select2-selection__placeholder {
+        color: #000 !important; /* black color */
+    }
+
+
 </style>
 
 @section Scripts {
     @await Html.PartialAsync("_ValidationScriptsPartial")
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 
     <script>
         $(document).ready(function () {
             // Load subcategories based on category
             $('#CategoryDropdown').change(function () {
-                var categoryId = $(this).val();
-                $('#SubcategoryId').empty().append('<option value="">Loading...</option>');
+                const categoryId = $(this).val();
+                const subcategoryDropdown = $('#SubcategoryId');
+                subcategoryDropdown.empty().append('<option value="">Loading...</option>');
 
                 if (categoryId) {
-                    $.getJSON('/Tickets/GetSubcategoriesByCategory?categoryId=' + categoryId, function (data) {
-                        $('#SubcategoryId').empty().append('<option value="">-- Select Subcategory --</option>');
-                        $.each(data, function (i, subcat) {
-                            $('#SubcategoryId').append('<option value="' + subcat.id + '">' + subcat.subcategoryName + '</option>');
+                    $.getJSON('/Tickets/GetSubcategoriesByCategory', { categoryId: categoryId })
+                        .done(function (data) {
+                            subcategoryDropdown.empty().append('<option value="">-- Select Subcategory --</option>');
+                            $.each(data, function (i, subcat) {
+                                subcategoryDropdown.append('<option value="' + subcat.id + '">' + subcat.subcategoryName + '</option>');
+                            });
+                        })
+                        .fail(function () {
+                            console.error('Error fetching subcategories');
                         });
-                    });
                 } else {
-                    $('#SubcategoryId').empty().append('<option value="">-- Select Subcategory --</option>');
+                    subcategoryDropdown.empty().append('<option value="">-- Select Subcategory --</option>');
+                }
+            });
+
+            // Load technicians based on subcategory
+            $('#SubcategoryId').change(function () {
+                const subcategoryId = $(this).val();
+                const technicianDropdown = $('#ManuallyAssignedToId');
+                technicianDropdown.empty().append('<option value="">Loading...</option>');
+
+                if (subcategoryId) {
+                    $.getJSON('/Tickets/GetTechniciansBySubcategory', { subcategoryId: subcategoryId })
+                        .done(function (data) {
+                            technicianDropdown.empty().append('<option value="">Select Technician</option>');
+                            $.each(data, function (i, tech) {
+                                technicianDropdown.append('<option value="' + tech.id + '">' + tech.name + '</option>');
+                            });
+                        })
+                        .fail(function () {
+                            console.error('Error fetching technicians');
+                        });
+                } else {
+                    technicianDropdown.empty().append('<option value="">Select Technician</option>');
                 }
             });
 
 
-                    $('#SubcategoryId').change(function () {
-            var subcategoryId = $(this).val();
-            var technicianDropdown = $('#ManuallyAssignedToId');
-            technicianDropdown.empty().append('<option value="">Loading...</option>');
-
-            if (subcategoryId) {
-                $.getJSON('/Tickets/GetTechniciansBySubcategory?subcategoryId=' + subcategoryId, function (data) {
-                    technicianDropdown.empty().append('<option value="">Select Technician</option>');
-                    $.each(data, function (i, tech) {
-                        technicianDropdown.append($('<option></option>').val(tech.id).text(tech.name));
-                    });
-                });
-            }
+                    $('#CategoryDropdown').select2({
+            placeholder: '-- Select Category --',
+            allowClear: true
         });
 
-            // File upload preview
-            const fileInput = document.getElementById("customFile");
-            const fileNamePreview = document.getElementById("fileNamePreview");
-            const fileNameText = document.getElementById("fileNameText");
-            const removeFileBtn = document.getElementById("removeFileBtn");
 
-            fileInput.addEventListener("change", function () {
-                if (fileInput.files.length > 0) {
-                    fileNameText.textContent = fileInput.files[0].name;
-                    fileNamePreview.style.display = "block";
+                 // Initialize Select2 for the technician dropdown
+        $('#ManuallyAssignedToId').select2({
+            placeholder: "Select Technician",
+            allowClear: true,
+            width: '100%'
+        });
+
+            // Populate email field when technician is selected
+            $('#ManuallyAssignedToId').change(function () {
+                const technicianId = $(this).val();
+
+                if (technicianId) {
+                    $.getJSON('/Tickets/GetTechnicianEmail', { technicianId: technicianId })
+                        .done(function (data) {
+                            if (data.email) {
+                                $('#EmailToNotify').val(data.email);
+                            } else {
+                                $('#EmailToNotify').val('');
+                            }
+                        })
+                        .fail(function () {
+                            console.error('Error fetching technician email');
+                        });
                 } else {
-                    fileNamePreview.style.display = "none";
-                    fileNameText.textContent = "";
+                    $('#EmailToNotify').val('');
                 }
             });
 
-            removeFileBtn.addEventListener("click", function () {
-                fileInput.value = "";
-                fileNamePreview.style.display = "none";
-                fileNameText.textContent = "";
+            // File upload preview
+            const fileInput = document.getElementById('customFile');
+            const fileNamePreview = document.getElementById('fileNamePreview');
+            const fileNameText = document.getElementById('fileNameText');
+            const removeFileBtn = document.getElementById('removeFileBtn');
+
+            fileInput.addEventListener('change', function () {
+                if (fileInput.files.length > 0) {
+                    fileNameText.textContent = fileInput.files[0].name;
+                    fileNamePreview.style.display = 'block';
+                } else {
+                    fileNamePreview.style.display = 'none';
+                    fileNameText.textContent = '';
+                }
+            });
+
+            removeFileBtn.addEventListener('click', function () {
+                fileInput.value = '';
+                fileNamePreview.style.display = 'none';
+                fileNameText.textContent = '';
             });
         });
     </script>
 }
+
+
+

@@ -26,35 +26,37 @@ namespace ITHelpDesk.Services
                 UserId = userId,
                 Message = message,
                 TicketId = ticketId,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now,
             };
 
             _context.Notifications.Add(notification);
             await _context.SaveChangesAsync();
         }
 
-        // For group notifications
-        public async Task CreateGroupNotification(int groupId, string message, int? ticketId = null)
+        public async Task CreateTechnicianNotification(int technicianId, string message, int? ticketId = null)
         {
-            var technicians = await _context.Technicians
-                .Where(t => t.TechnicianGroupId == groupId && t.UserId != null)
-                .ToListAsync();
+            var technician = await _context.Technicians
+                .FirstOrDefaultAsync(t => t.Id == technicianId);
 
-            foreach (var tech in technicians)
+            if (technician == null || string.IsNullOrEmpty(technician.UserId))
             {
-                var notification = new Notification
-                {
-                    UserId = tech.UserId,
-                    TechnicianGroupId = groupId,
-                    Message = message,
-                    TicketId = ticketId,
-                    CreatedAt = DateTime.UtcNow
-                };
-                _context.Notifications.Add(notification);
+                _logger.LogWarning($"Technician with Id {technicianId} not found or has no UserId.");
+                return;
             }
 
+            var notification = new Notification
+            {
+                UserId = technician.UserId,
+                TechnicianGroupId = technician.TechnicianGroupId,
+                Message = message,
+                TicketId = ticketId,
+                CreatedAt = DateTime.Now,
+            };
+
+            _context.Notifications.Add(notification);
             await _context.SaveChangesAsync();
         }
+
 
         // Get notifications for current user
         public async Task<List<Notification>> GetUserNotifications(string userId)
@@ -62,9 +64,11 @@ namespace ITHelpDesk.Services
             return await _context.Notifications
                 .Where(n => n.UserId == userId)
                 .OrderByDescending(n => n.CreatedAt)
-                .Take(20)
+                .Take(5) // Limit to 5 notifications
                 .ToListAsync();
         }
+
+
 
         // Get unread count
         public async Task<int> GetUnreadCount(string userId)
@@ -86,8 +90,33 @@ namespace ITHelpDesk.Services
                 await _context.SaveChangesAsync();
             }
         }
-    }
 
+        // ⭐ Remove read notifications older than 1 day
+        public async Task RemoveOldReadNotificationsAsync()
+        {
+            try
+            {
+                var oneDayAgo = DateTime.Now.AddDays(-1);
+
+                var oldReadNotifications = await _context.Notifications
+                    .Where(n => n.IsRead && n.CreatedAt < oneDayAgo)
+                    .ToListAsync();
+
+                if (oldReadNotifications.Any())
+                {
+                    _context.Notifications.RemoveRange(oldReadNotifications);
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("Removed {Count} old read notifications.", oldReadNotifications.Count);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removing old read notifications");
+            }
+        }
+    }
 }
+
+
 
 

@@ -187,10 +187,10 @@
             <div class="col-md-6 mb-3">
                 <span class="ticket-detail-label">Email</span>: @Model.Email
             </div>
-            <div class="col-md-6 mb-3">
+           @*  <div class="col-md-6 mb-3">
                 <span class="ticket-detail-label">Last Updated</span>:@(Model.StatusChangedAt.HasValue? Model.StatusChangedAt.Value.ToString("MMM dd, yyyy hh:mm tt"): "N/A")
 
-            </div>
+            </div> *@
         </div>
 
         <div class="row">
@@ -198,8 +198,9 @@
                 <span class="ticket-detail-label">Port</span>: @Model.Port?.PortName
             </div>
             <div class="col-md-6 mb-3">
-                <span class="ticket-detail-label">Department</span>: @Model.Department?.DepartmentName
+                <span class="ticket-detail-label">Department</span>: @(Model.Department != null ? Model.Department.DepartmentName : "N/A")
             </div>
+
         </div>
 
         <div class="row">

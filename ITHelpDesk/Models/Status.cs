@@ -11,7 +11,5 @@ namespace ITHelpDesk.Models
         [Required]
         public string StatusName { get; set; } // e.g., Unassigned, Assigned, Closed
 
-        // Optional: use this later for auto-escalation logic
-        public int EscalationThresholdInMinutes { get; set; }
     }
 }
