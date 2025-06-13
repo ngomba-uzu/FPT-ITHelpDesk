@@ -12,7 +12,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - FPT IT HelpDesk</title>
+    <title>@ViewData["Title"] - FPT IT Helpdesk</title>
     
     <style>
         
@@ -97,7 +97,22 @@
                                 <tr>
                                     <td>@Html.DisplayFor(modelItem => item.SubcategoryName)</td>
                                     <td>@Html.DisplayFor(modelItem => item.Category.CategoryName)</td>
-                                    <td>@Html.DisplayFor(modelItem => item.TechnicianGroup.GroupName)</td>
+                                    <td>
+                                        @if (item.TechnicianGroups != null && item.TechnicianGroups.Any())
+                                        {
+                                            <ul class="mb-0 ps-3">
+                                                @foreach (var group in item.TechnicianGroups)
+                                                {
+                                                    <li>@group.GroupName</li>
+                                                }
+                                            </ul>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">No groups</span>
+                                        }
+                                    </td>
+
                                     <td class="text-end action-links">
                                         <a asp-action="Edit" asp-route-id="@item.Id" class="text-primary">
                                             <i class="fas fa-edit"></i> Edit

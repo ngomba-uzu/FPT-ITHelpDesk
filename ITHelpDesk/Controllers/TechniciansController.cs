@@ -346,8 +346,9 @@ namespace ITHelpDesk.Controllers
                 return NotFound("Technician not found.");
             }
 
+            // ✅ Correctly get SubcategoryIds through the many-to-many relationship
             var subcategoryIds = await _context.Subcategories
-                .Where(s => s.TechnicianGroupId == technician.TechnicianGroupId)
+                .Where(s => s.TechnicianGroups.Any(g => g.Id == technician.TechnicianGroupId))
                 .Select(s => s.Id)
                 .ToListAsync();
 
@@ -362,100 +363,16 @@ namespace ITHelpDesk.Controllers
                 return Content("You are not assigned to any ports. Please contact admin.");
             }
 
-            var oneHourAgo = DateTime.Now.AddHours(-1);
-
-            // Get unassigned, high-priority tickets older than 1 hour, not auto escalated
-            var escalatedTickets = await _context.Tickets
+            // Only load unassigned tickets
+            IQueryable<Ticket> ticketsQuery = _context.Tickets
                 .Where(t => t.AssignedTechnicianId == null &&
-                            t.CreatedAt <= oneHourAgo &&
-                            t.Priority.PriorityName.ToLower() == "high" &&
-                            !t.IsAutoEscalated &&
                             subcategoryIds.Contains(t.SubcategoryId) &&
                             technicianPortIds.Contains(t.PortId))
-                .Include(t => t.Priority)
                 .Include(t => t.Subcategory)
-                .ToListAsync();
-
-            // Get unique nullable TechnicianGroupIds and PortIds from tickets (List<int?>)
-            var technicianGroupIds = escalatedTickets
-                .Select(t => t.Subcategory.TechnicianGroupId)
-                .Distinct()
-                .ToList();
-
-            var portIds = escalatedTickets
-                .Select(t => t.PortId)
-                .Distinct()
-                .ToList();
-
-            // Load senior technicians matching those nullable TechnicianGroupIds and PortIds,
-            // but filter out nulls from st.TechnicianGroupId and st.PortId before Contains check
-            var seniorTechnicians = await _context.SeniorTechnicians
-                .Where(st => st.TechnicianGroupId.HasValue
-                          && technicianGroupIds.Contains(st.TechnicianGroupId.Value)
-                          && st.PortId.HasValue
-                          && portIds.Contains(st.PortId.Value))
-                .ToListAsync();
-
-            // Build a dictionary: (TechnicianGroupId, PortId) -> SeniorTechnician
-            var seniorMap = seniorTechnicians
-                .GroupBy(st => new { st.TechnicianGroupId, st.PortId }) // Both are int? here
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.First()
-                );
-
-            // Pair tickets with their senior technician
-            var seniorTicketPairs = new List<(SeniorTechnician Senior, Ticket Ticket)>();
-            foreach (var ticket in escalatedTickets)
-            {
-                // Also create the key with nullable types (int?)
-                var key = new { TechnicianGroupId = (int?)ticket.Subcategory.TechnicianGroupId, PortId = (int?)ticket.PortId };
-                if (seniorMap.TryGetValue(key, out var senior))
-                {
-                    seniorTicketPairs.Add((senior, ticket));
-                }
-            }
-
-
-            // Group tickets by senior technician
-            var groupedBySenior = seniorTicketPairs
-                .GroupBy(pair => pair.Senior);
-
-            foreach (var group in groupedBySenior)
-            {
-                var senior = group.Key;
-                var message = new StringBuilder();
-                message.AppendLine($"Dear {senior.FullName},");
-                message.AppendLine("<br/><br/>The following high-priority ticket(s) have not been attended for over an hour:");
-
-                foreach (var pair in group)
-                {
-                    var ticket = pair.Ticket;
-                    message.AppendLine($"<br/>- Ticket {ticket.TicketNumber}, Created: {ticket.CreatedAt:g}");
-                    ticket.IsAutoEscalated = true; // Mark as auto escalated
-                }
-
-                message.AppendLine("<br/><br/>Please take necessary action.");
-                message.AppendLine("<br/><br/>Regards,<br/>Ticketing System");
-
-                await _emailSender.SendEmailAsync(senior.Email, "Escalation: Unassigned High-Priority Tickets", message.ToString());
-            }
-
-            if (escalatedTickets.Any())
-            {
-                await _context.SaveChangesAsync();
-            }
-
-            // Normal ticket loading
-            IQueryable<Ticket> ticketsQuery = _context.Tickets
-         .Where(t => t.AssignedTechnicianId == null &&
-                     subcategoryIds.Contains(t.SubcategoryId) &&
-                     technicianPortIds.Contains(t.PortId))
-         .Include(t => t.Subcategory)
-         .Include(t => t.Department)
-         .Include(t => t.Priority)
-         .Include(t => t.Status)
-         .Include(t => t.Port);
+                .Include(t => t.Department)
+                .Include(t => t.Priority)
+                .Include(t => t.Status)
+                .Include(t => t.Port);
 
             if (!string.IsNullOrEmpty(searchTerm))
             {
@@ -474,6 +391,8 @@ namespace ITHelpDesk.Controllers
 
             return View(tickets);
         }
+
+
 
         // POST: AssignToMe
         [HttpPost]
@@ -516,7 +435,7 @@ namespace ITHelpDesk.Controllers
 <p>Dear {ticket.RequesterName},</p>
 <p>Your ticket <strong>{ticket.TicketNumber}</strong> has been assigned to <strong>{technician.FullName}</strong> and is now under resolution.</p>
 <p>You will be notified once the issue has been resolved.</p>
-<p>Regards,<br/>IT HelpDesk</p>";
+<p>Regards,<br/>IT Helpdesk System</p>";
 
             await _emailSender.SendEmailAsync(ticket.Email, subject, message);
 
@@ -632,7 +551,7 @@ namespace ITHelpDesk.Controllers
             <a href='https://localhost:44388/Technicians/Acknowledge?id={ticket.Id}&acknowledge=Yes'>✅ Yes</a> &nbsp;
             <a href='https://localhost:44388/Technicians/Acknowledge?id={ticket.Id}&acknowledge=No'>❌ No</a>
         </p>
-        <p>Thank you,<br/>IT HelpDesk Team</p>";
+        <p>Regards,<br/>IT Helpdesk Team</p>";
                 }
                 else if (selectedStatus.StatusName == "Failed")
                 {
@@ -641,7 +560,7 @@ namespace ITHelpDesk.Controllers
         <p>Dear {ticket.RequesterName},</p>
         <p>We regret to inform you that your ticket <strong>{ticket.TicketNumber}</strong> could not be resolved successfully.</p>
         <p>A technician attempted resolution but marked it as failed. Please follow up with the IT department for further assistance.</p>
-        <p>Thank you,<br/>IT HelpDesk Team</p>";
+        <p>Regards,<br/>IT Helpdesk System</p>";
                 }
                 // ✅ Always send email to the user (requester) only
                 await _emailSender.SendEmailAsync(ticket.Email, subject, body);
@@ -835,7 +754,7 @@ namespace ITHelpDesk.Controllers
         <p>The ticket <strong>{ticket.TicketNumber}</strong> has been reassigned to you by <strong>{currentTechnician.FullName}</strong>.</p>
         <p><strong>Reason for reassignment:</strong> {ReassignReason}</p>
         <p>Please log in to the system to review the ticket details.</p>
-        <p>Thank you,<br/>IT HelpDesk System</p>";
+        <p>Regards,<br/>IT Helpdesk System</p>";
 
             await _emailSender.SendEmailAsync(newTechnician.Email, subject, body);
 
@@ -915,7 +834,7 @@ namespace ITHelpDesk.Controllers
                <p>A ticket has been escalated for your review.</p>
                <p><strong>Reason:</strong> {model.EscalateReason}</p>
                <p><a href='{url}'>Click here to view and respond to the ticket</a></p>
-               <p>Regards,<br/>IT HelpDesk System</p>";
+               <p>Regards,<br/>IT Helpdesk System</p>";
 
             try
             {
@@ -957,7 +876,7 @@ namespace ITHelpDesk.Controllers
         <p>Dear {ticket.RequesterName},</p>
         <p>The priority of your ticket <strong>{ticket.TicketNumber}</strong> has been updated to <strong>{newPriority.PriorityName}</strong> by a technician.</p>
         <p><strong>Description:</strong> {ticket.Description}</p>
-        <p>Thank you,<br/>IT HelpDesk Team</p>";
+        <p>Regards,<br/>IT Helpdesk System</p>";
 
             await _emailSender.SendEmailAsync(ticket.Email, subject, body);
 

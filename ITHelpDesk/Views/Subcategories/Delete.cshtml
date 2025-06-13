@@ -10,7 +10,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - FPT IT HelpDesk</title>
+    <title>@ViewData["Title"] - FPT IT Helpdesk</title>
     
     <style>
        
@@ -69,8 +69,13 @@
                         </div>
 
                         <div class="detail-row">
-                            <h6>Technician Group</h6>
-                            <p class="mb-0">@Html.DisplayFor(model => model.TechnicianGroup.GroupName)</p>
+                            <h6>Technician Groups</h6>
+                            <ul class="mb-0">
+                                @foreach (var group in Model.TechnicianGroups)
+                                {
+                                    <li>@group.GroupName</li>
+                                }
+                            </ul>
                         </div>
                         <form asp-action="Delete" class="mt-4">
                             <input type="hidden" asp-for="Id" />

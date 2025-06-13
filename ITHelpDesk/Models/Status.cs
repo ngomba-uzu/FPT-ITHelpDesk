@@ -9,6 +9,7 @@ namespace ITHelpDesk.Models
         public int Id { get; set; }
 
         [Required]
+        [Display(Name = "Status Name")]
         public string StatusName { get; set; } // e.g., Unassigned, Assigned, Closed
 
     }

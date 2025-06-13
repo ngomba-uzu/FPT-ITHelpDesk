@@ -10,18 +10,21 @@ namespace ITHelpDesk.Models
         public int Id { get; set; }
 
         [Required]
+        [Display(Name = "Full Name")]
         public string FullName { get; set; }
 
         [EmailAddress]
         public string Email { get; set; }
 
         [ValidateNever]
+        [Display(Name = "User Name")]
         public string UserId { get; set; }
 
         [ValidateNever]
         public ApplicationUser? User { get; set; }
 
         [Required]
+        [Display(Name = "Technician Group")]
         public int TechnicianGroupId { get; set; }
 
         [ValidateNever]

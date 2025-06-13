@@ -8,15 +8,18 @@ namespace ITHelpDesk.Models
         public int Id { get; set; }
 
         [Required(ErrorMessage = "Subcategory name is required")]
+        [Display(Name = "Subcategory Name")]
         public string SubcategoryName { get; set; }
 
+        [Display(Name = "Category")]
         public int CategoryId { get; set; }
-        public int TechnicianGroupId { get; set; }
 
         [ValidateNever]
         public Category Category { get; set; }
-        [ValidateNever]
-        public TechnicianGroup TechnicianGroup { get; set; }
 
+        [ValidateNever]
+        [Display(Name = "Technician Groups")]
+        public ICollection<TechnicianGroup> TechnicianGroups { get; set; } = new List<TechnicianGroup>();
     }
+
 }

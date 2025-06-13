@@ -9,6 +9,7 @@ namespace ITHelpDesk.Models
 
         [Required]
         [MaxLength(100)]
+        [Display(Name = "Priority Name")]
         public string PriorityName { get; set; }
     }
 }

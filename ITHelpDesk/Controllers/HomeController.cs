@@ -331,7 +331,7 @@ namespace ITHelpDesk.Controllers
                         .Where(t =>
                             t.AssignedTechnicianId == null &&
                             t.Subcategory != null &&
-                            t.Subcategory.TechnicianGroupId == technicianGroupId &&
+                            t.Subcategory.TechnicianGroups.Any(g => g.Id == technicianGroupId) &&
                             assignedPortIds.Contains(t.PortId) && // 👈 key fix here
                             t.Status != null &&
                             t.Status.StatusName == "Unassigned");

@@ -54,7 +54,7 @@ namespace ITHelpDesk.Models
         [Display(Name = "Status")]
         public int StatusId { get; set; }
         public int? AssignedTechnicianId { get; set; }
-        public int TechnicianGroupId { get; set; }
+      /*  public int TechnicianGroupId { get; set; }*/
         [ValidateNever]
         public string CreatedBy { get; set; }
         
@@ -114,7 +114,7 @@ namespace ITHelpDesk.Models
         public Technician AssignedTechnician { get; set; }
 
         [ValidateNever]
-        public TechnicianGroup TechnicianGroup { get; set; }
+        public ICollection<TechnicianGroup> TechnicianGroups { get; set; } = new List<TechnicianGroup>();
 
         [ValidateNever]
         public Port Port { get; set; }

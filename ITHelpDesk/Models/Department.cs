@@ -9,6 +9,7 @@ namespace ITHelpDesk.Models
 
         [Required]
         [MaxLength(100)]
+        [Display(Name = "Department Name")]
         public string DepartmentName { get; set; }
 
     }

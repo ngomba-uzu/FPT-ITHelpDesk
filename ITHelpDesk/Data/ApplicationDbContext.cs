@@ -74,7 +74,14 @@ namespace ITHelpDesk.Data
                 .WithOne(t => t.AssignedTechnician)
                 .HasForeignKey(t => t.AssignedTechnicianId);
 
+            modelBuilder.Entity<Subcategory>()
+      .HasMany(s => s.TechnicianGroups)
+      .WithMany(t => t.Subcategories);
 
+
+            modelBuilder.Entity<Ticket>()
+     .HasMany(t => t.TechnicianGroups)
+     .WithMany(g => g.Tickets);
         }
     }
 }

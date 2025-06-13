@@ -10,7 +10,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - FPT HelpDesk </title>
+    <title>@ViewData["Title"] - FPT Helpdesk </title>
   
     <style>
         
@@ -64,6 +64,22 @@
                         <div class="detail-row">
                             <h6>Category</h6>
                             <p class="mb-0">@Html.DisplayFor(model => model.Category.CategoryName)</p>
+                        </div>
+                        <div class="detail-row">
+                            <h6>Technician Groups</h6>
+                            @if (Model.TechnicianGroups != null && Model.TechnicianGroups.Any())
+                            {
+                                <ul class="mb-0 ps-3">
+                                    @foreach (var group in Model.TechnicianGroups)
+                                    {
+                                        <li>@group.GroupName</li>
+                                    }
+                                </ul>
+                            }
+                            else
+                            {
+                                <p class="mb-0 text-muted">No technician groups assigned.</p>
+                            }
                         </div>
                     </div>
                     <div class="card-footer">

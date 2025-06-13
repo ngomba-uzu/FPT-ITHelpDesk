@@ -137,15 +137,12 @@ namespace ITHelpDesk.Controllers
         {
             try
             {
-                var user = await _userManager.GetUserAsync(User);
-                var appUser = user as ApplicationUser;
-
-                if (appUser == null)
-                {
+                var user = await _userManager.GetUserAsync(User) as ApplicationUser;
+                if (user == null)
                     return Unauthorized();
-                }
 
                 var subcategory = await _context.Subcategories
+                    .Include(s => s.TechnicianGroups)
                     .FirstOrDefaultAsync(s => s.Id == ticket.SubcategoryId);
 
                 if (subcategory == null)
@@ -155,51 +152,39 @@ namespace ITHelpDesk.Controllers
                     return View(ticket);
                 }
 
-                ticket.TechnicianGroupId = subcategory.TechnicianGroupId;
+                ticket.TechnicianGroups = subcategory.TechnicianGroups.ToList();
 
-                // Handle manual assignment for technicians/tech support
-                var isTechnician = await _userManager.IsInRoleAsync(appUser, "Technician");
-                var isTechnicalSupport = await _userManager.IsInRoleAsync(appUser, "TechnicalSupport");
-                var showTechnicianFields = isTechnician || isTechnicalSupport;
-                Technician assignedTech = null;
+                var isTechOrSupport = await _userManager.IsInRoleAsync(user, "Technician") ||
+                                      await _userManager.IsInRoleAsync(user, "TechnicalSupport");
 
-                if (showTechnicianFields && ticket.ManuallyAssignedToId.HasValue)
+                Technician? assignedTech = null;
+
+                if (isTechOrSupport && ticket.ManuallyAssignedToId.HasValue)
                 {
-                    // Set the assigned technician
                     ticket.AssignedTechnicianId = ticket.ManuallyAssignedToId.Value;
                     assignedTech = await _context.Technicians.FindAsync(ticket.AssignedTechnicianId);
 
-                    // Set status to "Assigned"
-                    var assignedStatus = await _context.Status
-                        .FirstOrDefaultAsync(s => s.StatusName == "Assigned");
-
-                    if (assignedStatus != null)
-                    {
-                        ticket.StatusId = assignedStatus.Id;
-                    }
+                    var assignedStatus = await _context.Status.FirstOrDefaultAsync(s => s.StatusName == "Assigned");
+                    ticket.StatusId = assignedStatus?.Id ?? ticket.StatusId;
                 }
                 else
                 {
-                    // For regular users, ensure these fields are null
                     ticket.Mode = null;
                     ticket.ManuallyAssignedToId = null;
                     ticket.EmailToNotify = null;
                     ticket.Organization = null;
 
-                    // Set default status to "Unassigned"
-                    var defaultStatus = await _context.Status
-                        .FirstOrDefaultAsync(s => s.StatusName == "Unassigned");
-
+                    var defaultStatus = await _context.Status.FirstOrDefaultAsync(s => s.StatusName == "Unassigned");
                     if (defaultStatus == null)
                     {
-                        ModelState.AddModelError(string.Empty, "Default status 'Unassigned' not found.");
+                        ModelState.AddModelError("", "Default status 'Unassigned' not found.");
                         LoadDropdowns(ticket);
                         return View(ticket);
                     }
                     ticket.StatusId = defaultStatus.Id;
                 }
 
-                // Handle file upload
+                // Handle File Upload
                 if (UploadedFile != null && UploadedFile.Length > 0)
                 {
                     var fileName = Path.GetFileName(UploadedFile.FileName);
@@ -209,10 +194,8 @@ namespace ITHelpDesk.Controllers
                         Directory.CreateDirectory(uploadPath);
 
                     var filePath = Path.Combine(uploadPath, fileName);
-                    using (var stream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await UploadedFile.CopyToAsync(stream);
-                    }
+                    using var stream = new FileStream(filePath, FileMode.Create);
+                    await UploadedFile.CopyToAsync(stream);
 
                     ticket.FileName = fileName;
                 }
@@ -223,87 +206,96 @@ namespace ITHelpDesk.Controllers
                     return View(ticket);
                 }
 
+                // Metadata
                 ticket.CreatedAt = DateTime.Now;
-                ticket.CreatedBy = appUser.Id;
+                ticket.CreatedBy = user.Id;
 
-                // Generate per-user ticket number
-                var lastUserTicket = await _context.Tickets
-                    .Where(t => t.CreatedBy == appUser.Id)
+                // Ticket Number Generation
+                var lastUserTicketNumber = await _context.Tickets
+                    .Where(t => t.CreatedBy == user.Id)
                     .OrderByDescending(t => t.TicketNumber)
                     .Select(t => t.TicketNumber)
                     .FirstOrDefaultAsync();
 
-                int newUserNumber = 1;
-                if (!string.IsNullOrEmpty(lastUserTicket))
+                int nextNumber = 1;
+                if (!string.IsNullOrWhiteSpace(lastUserTicketNumber))
                 {
-                    var match = Regex.Match(lastUserTicket, @"#TKT-(\d+)");
+                    var match = Regex.Match(lastUserTicketNumber, @"#TKT-(\d+)");
                     if (match.Success)
-                    {
-                        newUserNumber = int.Parse(match.Groups[1].Value) + 1;
-                    }
+                        nextNumber = int.Parse(match.Groups[1].Value) + 1;
                 }
-
-                ticket.TicketNumber = $"#TKT-{newUserNumber:D3}";
-
+                ticket.TicketNumber = $"#TKT-{nextNumber:D3}";
 
                 _context.Tickets.Add(ticket);
                 await _context.SaveChangesAsync();
 
-                // Now that we have the ticket number, we can send the email
-                if (showTechnicianFields && ticket.ManuallyAssignedToId.HasValue && !string.IsNullOrEmpty(ticket.EmailToNotify))
+                // Manual assignment email
+                if (isTechOrSupport && ticket.ManuallyAssignedToId.HasValue && !string.IsNullOrWhiteSpace(ticket.EmailToNotify))
                 {
-                    var subject = $"New Ticket Manually Created: {ticket.TicketNumber}";
-                    var body = $@"
-                     <h3>A new ticket has been manually created and assigned.</h3>
-                     <p><strong>Ticket Number:</strong> {ticket.TicketNumber}</p>
-                     <p><strong>Assigned To:</strong> {assignedTech?.FullName ?? "Technician"}</p>
-                     <p><strong>Description:</strong> {ticket.Description}</p>
-                     <p>Please check the ticket details and proceed as needed.</p>";
+                    try
+                    {
+                        var subject = $"New Ticket Assigned: {ticket.TicketNumber}";
+                        var body = $@"
+<html>
+<body>
+    <h3>A support ticket has been manually created and assigned:</h3>
+    <ul>
+        <li><strong>Ticket Number:</strong> {ticket.TicketNumber}</li>
+        <li><strong>Assigned To:</strong> {assignedTech?.FullName ?? "Technician"}</li>
+        <li><strong>Description:</strong> {ticket.Description}</li>
+        <li><strong>Date:</strong> {ticket.CreatedAt:yyyy/MM/dd HH:mm:ss}</li>
+    </ul>
+    <p>Regards,<br />IT Helpdesk System</p>
+</body>
+</html>";
 
-                    await _emailSender.SendEmailAsync(ticket.EmailToNotify, subject, body);
+                        await _emailSender.SendEmailAsync(ticket.EmailToNotify, subject, body);
+                    }
+                    catch (Exception emailEx)
+                    {
+                        ModelState.AddModelError("", $"Manual email failed: {emailEx.Message}");
+                    }
                 }
 
-                // Only send group notifications for non-manually assigned tickets
-                if (!showTechnicianFields || !ticket.ManuallyAssignedToId.HasValue)
+
+                // Automatic notifications for high-priority tickets
+                if (!isTechOrSupport || !ticket.ManuallyAssignedToId.HasValue)
                 {
                     ticket = await _context.Tickets
                         .Include(t => t.Priority)
+                        .Include(t => t.TechnicianGroups)
                         .FirstOrDefaultAsync(t => t.Id == ticket.Id);
 
-                    if (ticket.Priority?.PriorityName == "High"
-                         && ticket.TechnicianGroupId > 0
-                          && ticket.PortId > 0)
+                    var technicianGroupIds = ticket.TechnicianGroups?.Select(g => g.Id).ToList() ?? new();
+
+                    if (ticket.Priority?.PriorityName == "High" && technicianGroupIds.Any() && ticket.PortId > 0)
                     {
-                        // Get only technicians in the group and assigned to the port
                         var techniciansToNotify = await _context.Technicians
-                            .Where(t => t.TechnicianGroupId == ticket.TechnicianGroupId)
+                            .Where(t => technicianGroupIds.Contains(t.TechnicianGroupId))
                             .Where(t => t.TechnicianPorts.Any(tp => tp.PortId == ticket.PortId))
                             .ToListAsync();
 
-                        foreach (var technician in techniciansToNotify)
+                        foreach (var tech in techniciansToNotify)
                         {
-                            // Assuming you have a method to create individual notifications
                             await _notificationService.CreateTechnicianNotification(
-                                technician.Id,
+                                tech.Id,
                                 $"🚨 High priority ticket {ticket.TicketNumber}",
-                                ticket.Id
-                            );
+                                ticket.Id);
                         }
                     }
 
-
+                    // Email notification to matching technicians
                     var matchingTechs = await _context.Technicians
-                        .Include(t => t.TechnicianPorts)
-                        .Where(t => t.TechnicianGroupId == ticket.TechnicianGroupId &&
-                                    t.TechnicianPorts.Any(tp => tp.PortId == ticket.PortId))
-                        .ToListAsync();
+                         .Include(t => t.TechnicianGroup)
+                         .Include(t => t.TechnicianPorts)
+                         .Where(t => technicianGroupIds.Contains(t.TechnicianGroupId) &&
+                                t.TechnicianPorts.Any(tp => tp.PortId == ticket.PortId))
+                         .ToListAsync();
 
-                    if (matchingTechs.Any())
-                    {
-                        var subject = $"New Ticket Created: {ticket.TicketNumber}";
-                        var ticketLink = Url.Action("Details", "Ticket", new { id = ticket.Id }, protocol: Request.Scheme);
-                        var body = $@"
-                        <p>A new support ticket has been submitted:</p>
+
+                    var subject = $"New Ticket Created: {ticket.TicketNumber}";
+                    var emailBody = $@"
+                <p>A new support ticket has been submitted:</p>
                         <ul>
                            <li><strong>Ticket Number:</strong> {ticket.TicketNumber}</li>
                            <li><strong>Description:</strong> {ticket.Description}</li>
@@ -311,15 +303,21 @@ namespace ITHelpDesk.Controllers
                            <li><strong>Submitted By:</strong> {ticket.RequesterName}</li>
                            <li><strong>Date:</strong> {ticket.CreatedAt:yyyy/MM/dd HH:mm:ss}</li>
                         </ul>  
-                        <p>Please log in to the system to view and assign the ticket.</p>";
+                        <p>Please log in to the system to view and assign the ticket.</p>
+                        <p> Regards,<br/> IT Helpdesk System</p> ";
 
-
-                        foreach (var tech in matchingTechs)
+                    foreach (var tech in matchingTechs)
+                    {
+                        try
                         {
-                            if (!string.IsNullOrEmpty(tech.Email))
+                            if (!string.IsNullOrWhiteSpace(tech.Email))
                             {
-                                await _emailSender.SendEmailAsync(tech.Email, subject, body);
+                                await _emailSender.SendEmailAsync(tech.Email, subject, emailBody);
                             }
+                        }
+                        catch (Exception emailEx)
+                        {
+                            ModelState.AddModelError("", $"Failed to email {tech.Email}: {emailEx.Message}");
                         }
                     }
                 }
@@ -329,16 +327,15 @@ namespace ITHelpDesk.Controllers
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, "An error occurred: " + ex.Message);
+                ModelState.AddModelError("", $"An error occurred: {ex.Message}");
                 if (ex.InnerException != null)
-                {
-                    ModelState.AddModelError(string.Empty, "Inner Exception: " + ex.InnerException.Message);
-                }
+                    ModelState.AddModelError("", $"Inner Exception: {ex.InnerException.Message}");
 
                 LoadDropdowns(ticket);
                 return View(ticket);
             }
         }
+
 
 
 
@@ -380,23 +377,28 @@ namespace ITHelpDesk.Controllers
 
         public async Task<IActionResult> GetTechniciansBySubcategory(int subcategoryId)
         {
-            // 1. Get the TechnicianGroupId from the selected Subcategory
+            // Load Subcategory with its TechnicianGroups
             var subcategory = await _context.Subcategories
+                .Include(s => s.TechnicianGroups)
                 .FirstOrDefaultAsync(s => s.Id == subcategoryId);
 
-            if (subcategory == null)
+            if (subcategory == null || subcategory.TechnicianGroups == null || !subcategory.TechnicianGroups.Any())
             {
                 return Json(new List<object>());
             }
 
-            // 2. Get all technicians in this group
+            // Get all TechnicianGroupIds related to this subcategory
+            var technicianGroupIds = subcategory.TechnicianGroups.Select(g => g.Id).ToList();
+
+            // Get all technicians that belong to any of those groups
             var technicians = await _context.Technicians
-                .Where(t => t.TechnicianGroupId == subcategory.TechnicianGroupId)
+                .Where(t => technicianGroupIds.Contains(t.TechnicianGroupId))
                 .Select(t => new { id = t.Id, name = t.FullName })
                 .ToListAsync();
 
             return Json(technicians);
         }
+  
 
         [HttpGet]
         public JsonResult GetTechnicianEmail(int technicianId)

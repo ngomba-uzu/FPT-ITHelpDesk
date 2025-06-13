@@ -9,6 +9,7 @@ namespace ITHelpDesk.Models
 
         [Required(ErrorMessage = "Category name is required")]
         [StringLength(100)]
+        [Display(Name = "Category Name")]
         public string CategoryName { get; set; }
 
         [ValidateNever]

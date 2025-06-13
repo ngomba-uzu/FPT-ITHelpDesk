@@ -39,6 +39,7 @@
                     <thead class="table-light">
                         <tr>
                             <th>Ticket #</th>
+                            <th>Requester</th>
                             <th>Description</th>
                             <th>Status</th>
                             <th>Closed Date</th>
@@ -52,6 +53,12 @@
                         {
                             <tr>
                                 <td class="fw-bold">@ticket.TicketNumber</td>
+                                <td>
+                                    <div class="d-flex flex-column">
+                                        <span>@ticket.RequesterName</span>
+                                        <small class="text-muted">@ticket.Email</small>
+                                    </div>
+                                </td>
                                 <td class="text-truncate" style="max-width: 200px;" title="@ticket.Description">
                                     @ticket.Description
                                 </td>

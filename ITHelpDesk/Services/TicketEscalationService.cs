@@ -17,25 +17,30 @@ namespace ITHelpDesk.Services
     public class TicketEscalationService : IHostedService, IDisposable
     {
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly ILogger<TicketEscalationService> _logger;
         private Timer _timer;
 
-        public TicketEscalationService(IServiceScopeFactory scopeFactory)
+        public TicketEscalationService(IServiceScopeFactory scopeFactory, ILogger<TicketEscalationService> logger)
         {
             _scopeFactory = scopeFactory;
+            _logger = logger;
         }
 
-        // Start the timer when the app starts
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            // Check every 1 minute
-            _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
+            _logger.LogInformation("TicketEscalationService started.");
+            // Testing: run every 30 seconds instead of hourly
+            _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
             return Task.CompletedTask;
         }
 
         private async void DoWork(object state)
         {
-            using (var scope = _scopeFactory.CreateScope())
+            _logger.LogInformation("DoWork triggered at {Time}", DateTime.Now);
+
+            try
             {
+                using var scope = _scopeFactory.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
 
@@ -43,53 +48,62 @@ namespace ITHelpDesk.Services
 
                 var escalatedTickets = await context.Tickets
                     .Where(t => t.AssignedTechnicianId == null
-                                && t.CreatedAt <= oneHourAgo
-                                && t.Priority.PriorityName.ToLower() == "high"
-                                && !t.IsAutoEscalated)
+                             && t.CreatedAt <= oneHourAgo
+                             && t.Priority.PriorityName.ToLower() == "high"
+                             && !t.IsAutoEscalated)
                     .Include(t => t.Subcategory)
+                        .ThenInclude(sc => sc.TechnicianGroups)
                     .Include(t => t.Priority)
                     .Include(t => t.Port)
                     .ToListAsync();
 
+
+                _logger.LogInformation("Escalated tickets count: {Count}", escalatedTickets.Count);
+
                 if (!escalatedTickets.Any())
+                {
+                    _logger.LogInformation("No tickets found for escalation.");
                     return;
+                }
 
                 var technicianGroupIds = escalatedTickets
-                    .Select(t => t.Subcategory.TechnicianGroupId)
+                    .SelectMany(t => t.Subcategory.TechnicianGroups.Select(g => g.Id))
                     .Distinct()
                     .ToList();
 
-                var portIds = escalatedTickets
-                    .Select(t => t.PortId)
-                    .Distinct()
-                    .ToList();
+                var portIds = escalatedTickets.Select(t => t.PortId).Distinct().ToList();
 
                 var seniorTechnicians = await context.SeniorTechnicians
                     .Where(st => st.TechnicianGroupId.HasValue
-                               && technicianGroupIds.Contains(st.TechnicianGroupId.Value)
-                               && st.PortId.HasValue
-                               && portIds.Contains(st.PortId.Value))
+                              && technicianGroupIds.Contains(st.TechnicianGroupId.Value)
+                              && st.PortId.HasValue
+                              && portIds.Contains(st.PortId.Value))
                     .ToListAsync();
+
+                _logger.LogInformation("Matching senior technicians found: {Count}", seniorTechnicians.Count);
 
                 var seniorMap = seniorTechnicians
                     .GroupBy(st => new { st.TechnicianGroupId, st.PortId })
-                    .ToDictionary(
-                        g => g.Key,
-                        g => g.First()
-                    );
+                    .ToDictionary(g => g.Key, g => g.First());
 
                 var seniorTicketPairs = new List<(SeniorTechnician, Ticket)>();
+
                 foreach (var ticket in escalatedTickets)
                 {
-                    var key = new { TechnicianGroupId = (int?)ticket.Subcategory.TechnicianGroupId, PortId = (int?)ticket.PortId };
-                    if (seniorMap.TryGetValue(key, out var senior))
+                    foreach (var groupId in ticket.Subcategory.TechnicianGroups.Select(g => g.Id))
                     {
-                        seniorTicketPairs.Add((senior, ticket));
+                        var key = new { TechnicianGroupId = (int?)groupId, PortId = (int?)ticket.PortId };
+                        if (seniorMap.TryGetValue(key, out var senior))
+                        {
+                            seniorTicketPairs.Add((senior, ticket));
+                            break;
+                        }
                     }
                 }
 
-                var groupedBySenior = seniorTicketPairs
-                    .GroupBy(pair => pair.Item1);
+                _logger.LogInformation("Tickets grouped for {Count} senior technicians", seniorTicketPairs.Select(x => x.Item1).Distinct().Count());
+
+                var groupedBySenior = seniorTicketPairs.GroupBy(pair => pair.Item1);
 
                 foreach (var group in groupedBySenior)
                 {
@@ -106,26 +120,40 @@ namespace ITHelpDesk.Services
                     }
 
                     message.AppendLine("<br/><br/>Please take necessary action.");
-                    message.AppendLine("<br/><br/>Regards,<br/>Ticketing System");
+                    message.AppendLine("<br/><br/>Regards,<br/>IT Helpdesk System");
 
-                    await emailSender.SendEmailAsync(senior.Email, "Escalation: Unassigned High-Priority Tickets", message.ToString());
+                    _logger.LogInformation($"Sending escalation email to: {senior.Email}");
+
+                    await emailSender.SendEmailAsync(
+                        senior.Email,
+                        "Escalation: Unassigned High-Priority Tickets",
+                        message.ToString()
+                    );
                 }
 
                 await context.SaveChangesAsync();
+                _logger.LogInformation("Escalation process completed successfully at {Time}", DateTime.Now);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred during ticket escalation.");
             }
         }
 
-        // Stop the timer when the app stops
         public Task StopAsync(CancellationToken cancellationToken)
         {
+            _logger.LogInformation("TicketEscalationService stopped.");
             _timer?.Change(Timeout.Infinite, 0);
             return Task.CompletedTask;
         }
 
-        // Dispose timer
         public void Dispose()
         {
             _timer?.Dispose();
         }
     }
+
 }
+
+
+
